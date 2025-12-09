@@ -1,0 +1,28 @@
+.today-info-pill {
+    display: flex;
+
+    align-items: center;
+    gap: 10px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+
+
+.today-weekday {
+    color: var(--text-main);
+}
+
+.today-date {
+    color: var(--text-faint);
+}
+
+.today-time {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-top: 1px;
+}

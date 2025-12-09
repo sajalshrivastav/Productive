@@ -1,0 +1,21 @@
+:root {
+    /* Base background */
+    --bg: #050711;
+    --bg-elevated: #111420;
+    --bg-card: rgba(18, 22, 33, 0.92);
+
+    /* Borders & shadows */
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.5);
+
+    /* Text */
+    --text-main: #f5f6fb;
+    --text-soft: #a6afc7;
+    --text-faint: #6f7484;
+
+    /* Accent colors (used sparingly) */
+    --accent-pink: #ff7ab6;
+    --accent-blue: #7fb4ff;
+    --accent-amber: #ffc86f;
+    --accent-green: #7dffd2;
+}
