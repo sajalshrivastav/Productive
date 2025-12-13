@@ -11,6 +11,8 @@ import TasksWidget from '../Components/Widgets/TasksWidget.jsx'
 import WeeklyProgressWidget from '../Components/Widgets/WeeklyProgressWidget.jsx'
 import DailyStatsWidget from '../Components/Widgets/DailyStatsWidget.jsx'
 import HabitsWidget from '../Components/Widgets/HabitsWidget.jsx'
+import FocusSessionGraphWidget from '../Components/Widgets/FocusSessionGraphWidget.jsx'
+import HabitCarouselWidget from '../Components/Widgets/HabitCarouselWidget.jsx'
 
 // Helper to get formatted date
 const getTodayString = () => new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
@@ -160,8 +162,10 @@ export default function Dashboard() {
                 )}
 
                 {/* WIGGGLE UI: Extra Stats moved to Left Column for balance */}
-                <DailyStatsWidget />
-                <WeeklyProgressWidget />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                    <DailyStatsWidget />
+                    <WeeklyProgressWidget />
+                </div>
 
             </div>
 
@@ -171,8 +175,11 @@ export default function Dashboard() {
                 {/* WIGGGLE UI: Tasks Widget */}
                 <TasksWidget />
 
-                {/* WIGGGLE UI: Habits Widget */}
-                <HabitsWidget />
+                {/* NEW: Habit Carousel Widget */}
+                <HabitCarouselWidget />
+
+                {/* NEW: Focus Session Graph Widget */}
+                <FocusSessionGraphWidget />
 
             </div>
         </div>

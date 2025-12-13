@@ -10,20 +10,26 @@ import { GamificationProvider } from './Context/GamificationContext.jsx'
 
 import { BrowserRouter as Router } from 'react-router-dom'
 import { AuthProvider } from './Context/AuthContext.jsx'
+import { FocusSessionProvider } from './Context/FocusSessionContext.jsx'
+import { ThemeProvider } from './Context/ThemeContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
       <Router>
         <AuthProvider>
-          <GamificationProvider>
-            <TaskProvider>
-              <ChallengeProvider>
-                <HabitProvider>
-                  <App />
-                </HabitProvider>
-              </ChallengeProvider>
-            </TaskProvider>
-          </GamificationProvider>
+          <ThemeProvider>
+            <GamificationProvider>
+              <TaskProvider>
+                <ChallengeProvider>
+                  <HabitProvider>
+                    <FocusSessionProvider>
+                      <App />
+                    </FocusSessionProvider>
+                  </HabitProvider>
+                </ChallengeProvider>
+              </TaskProvider>
+            </GamificationProvider>
+          </ThemeProvider>
         </AuthProvider>
       </Router>
   </StrictMode>,

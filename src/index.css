@@ -222,39 +222,17 @@ body {
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Blitzit-inspired Palette (Updated) */
-  --bg-main: #030303;
-  /* Pure Black */
-  --bg-panel: #0E0E10;
-  /* Dark Grey Panel */
-  --bg-surface: #1C1C1E;
-  /* Lighter Surface (Cards/Inputs) */
-
-  --text-active: #ffffff;
-  --text-primary: #e4e4e7;
-  --text-secondary: #a1a1aa;
-  --text-muted: #52525b;
-
-  /* Gradients from User Screenshots */
+  /* Gradients (theme-independent) */
   --gradient-green: linear-gradient(90deg, #22d3ee 0%, #4ade80 100%);
-  /* Cyan -> Green */
   --gradient-purple: linear-gradient(90deg, #e879f9 0%, #60a5fa 100%);
-  /* Pink -> Blue */
   --gradient-orange: linear-gradient(90deg, #fb923c 0%, #facc15 100%);
-  /* Orange -> Yellow */
 
   --gradient-primary: var(--gradient-green);
-  /* Cyan to Green */
   --gradient-secondary: var(--gradient-purple);
-  /* Pink to Blue */
 
   --accent-primary: #22d3ee;
 
-  --border-subtle: #27272a;
-  /* Visible but subtle borders */
-  --border-highlight: #3f3f46;
-
-  /* Spacing */
+  /* Spacing (theme-independent) */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -484,22 +462,17 @@ body {
   padding: 24px;
 }
 
-/* --- Shared Components --- */
-.card-glass {
-  background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  /* Strong blur */
-  -webkit-backdrop-filter: blur(12px);
+/* --- Widget Glass (for new widgets) --- */
+.widget-glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 16px;
-  /* Reduced padding */
   transition: transform 0.2s ease, border-color 0.2s ease;
-  position: relative;
-  overflow: hidden;
 }
 
-.card-glass:hover {
+.widget-glass:hover {
   border-color: var(--border-highlight);
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -2020,9 +1993,9 @@ button {
   width: min(560px, 96%);
   max-width: 560px;
   border-radius: 24px;
-  background: linear-gradient(145deg, #1a1f2e 0%, #14171e 50%, #0f1218 100%);
+  background: var(--bg-card);
   border: 1px solid rgba(127, 180, 255, 0.15);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  box-shadow: var(--shadow-soft), 0 0 0 1px var(--border-subtle);
   overflow: hidden;
   color: var(--text-main);
   animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
