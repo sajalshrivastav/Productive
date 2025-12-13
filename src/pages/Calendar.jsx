@@ -1,9 +1,9 @@
 // src/Pages/Calendar.jsx
-import React, { useMemo, useState, useEffect } from 'react'
-import Card from '../Components/UI/Card.jsx'
-import SectionTitle from '../Components/UI/SectionTitle.jsx'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { useTasks } from '../Context/TaskContext.jsx'
 import EventModal from '../Components/calendar/EventModal.jsx'
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-react'
+import '../Styles/Calendar.css'
 
 const EVENT_STORAGE_KEY = 'cb-events-v1'
 
@@ -14,35 +14,37 @@ function getTodayKey(d = new Date()) {
   return `${y}-${m}-${day}`
 }
 
-function buildMonthDays(year, monthIndex) {
-  const first = new Date(year, monthIndex, 1)
-  const firstWeekday = first.getDay() // 0-6 Sunday-Sat
-  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
+// Generate time slots from 6 AM to 11 PM
+function generateTimeSlots() {
+  const slots = []
+  for (let hour = 6; hour <= 23; hour++) {
+    slots.push({
+      hour,
+      label: `${hour === 12 ? 12 : hour > 12 ? hour - 12 : hour} ${hour >= 12 ? 'PM' : 'AM'}`,
+      time24: `${String(hour).padStart(2, '0')}:00`,
+    })
+  }
+  return slots
+}
 
+// Get the week days starting from a given date
+function getWeekDays(startDate) {
   const days = []
-
-  // leading empty cells
-  for (let i = 0; i < firstWeekday; i++) days.push(null)
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, monthIndex, d)
-    const key = getTodayKey(date)
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(startDate)
+    date.setDate(startDate.getDate() + i)
     days.push({
       date,
-      key,
-      dayNumber: d,
-      isToday: key === getTodayKey(),
+      key: getTodayKey(date),
+      dayNumber: date.getDate(),
       weekday: date.toLocaleDateString(undefined, { weekday: 'short' }),
-      label: date.toLocaleDateString(undefined, {
+      monthDay: date.toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
       }),
+      isToday: getTodayKey(date) === getTodayKey(),
     })
   }
-
-  // trailing empties to fill last row
-  while (days.length % 7 !== 0) days.push(null)
-
   return days
 }
 
@@ -64,14 +66,267 @@ function saveEvents(events) {
   }
 }
 
-export default function CalendarPage() {
-  const { tasks, getTasksForDate, addTask, toggleTask } = useTasks()
+// Parse time string to get hour and minute
+function parseTime(timeStr) {
+  if (!timeStr) return null
+  const [hour, minute] = timeStr.split(':').map(Number)
+  return { hour, minute }
+}
+
+// Calculate event position and height
+function calculateEventPosition(startTime, duration) {
+  const parsed = parseTime(startTime)
+  if (!parsed) return null
+
+  const startMinutes = parsed.hour * 60 + parsed.minute
+  const baseMinutes = 6 * 60 // 6 AM start
+
+  // Parse duration (e.g., "60m", "1.5h", "90")
+  let durationMinutes = 60 // default
+  if (duration) {
+    const match = duration.match(/(\d+\.?\d*)\s*(m|h)?/)
+    if (match) {
+      const value = parseFloat(match[1])
+      const unit = match[2] || 'm'
+      durationMinutes = unit === 'h' ? value * 60 : value
+    }
+  }
+
+  const top = ((startMinutes - baseMinutes) / 60) * 80 // 80px per hour
+  const height = (durationMinutes / 60) * 80
+
+  return { top, height }
+}
+
+// Month View Component
+function MonthView({ events, eventsByDate, onAddEvent, onDeleteEvent }) {
   const today = new Date()
-  const [month, setMonth] = useState(today.getMonth()) // 0-11
+  const [month, setMonth] = useState(today.getMonth())
   const [year, setYear] = useState(today.getFullYear())
-  const [selectedDateKey, setSelectedDateKey] = useState(getTodayKey())
+  const [selectedDate, setSelectedDate] = useState(getTodayKey())
+
+  const monthDays = useMemo(() => {
+    const first = new Date(year, month, 1)
+    const firstWeekday = first.getDay() // 0 (Sun) - 6 (Sat)
+    
+    // Adjust for Monday start if needed? The UI shows Mon-Sun.
+    // If headers are Mon-Sun, then Sun should be 7? 
+    // Wait, standard JS getDay() is Sun=0.
+    // The rendered headers are Mon, Tue, Wed...
+    // So logic: Mon=1, Tue=2... Sun=7.
+    // Normalized start: (firstWeekday + 6) % 7 + 1?
+    // Let's assume standard grid (Col 1 = Mon)
+    // JS: Sun=0, Mon=1...
+    // If Mon is col 1, then Mon(1) -> 1.
+    // Sun(0) -> 7.
+    // Helper: const getGridCol = (d) => d === 0 ? 7 : d;
+    
+    const getGridCol = (d) => d === 0 ? 7 : d
+    const startCol = getGridCol(firstWeekday)
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const days = []
+
+    // Current month days only
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(year, month, d)
+      const key = getTodayKey(date)
+      days.push({
+        date,
+        key,
+        dayNumber: d,
+        isToday: key === getTodayKey(),
+        isOtherMonth: false,
+        // Only set startCol for the very first day
+        style: d === 1 ? { gridColumnStart: startCol } : {}
+      })
+    }
+
+    return days
+  }, [year, month])
+
+  const monthLabel = useMemo(
+    () =>
+      new Date(year, month, 1).toLocaleDateString(undefined, {
+        month: 'long',
+        year: 'numeric',
+      }),
+    [year, month],
+  )
+
+  // Get upcoming events (sorted by date and time)
+  const upcomingEvents = useMemo(() => {
+    const now = new Date()
+    const todayKey = getTodayKey()
+
+    return events
+      .filter((e) => e.dateKey >= todayKey)
+      .sort((a, b) => {
+        if (a.dateKey !== b.dateKey) return a.dateKey.localeCompare(b.dateKey)
+        if (a.startTime && b.startTime)
+          return a.startTime.localeCompare(b.startTime)
+        return 0
+      })
+      .slice(0, 10) // Show next 10 events
+  }, [events])
+
+  const handlePrev = () => {
+    if (month === 0) {
+      setMonth(11)
+      setYear(year - 1)
+    } else {
+      setMonth(month - 1)
+    }
+  }
+
+  const handleNext = () => {
+    if (month === 11) {
+      setMonth(0)
+      setYear(year + 1)
+    } else {
+      setMonth(month + 1)
+    }
+  }
+
+  const handleDayClick = (day) => {
+    setSelectedDate(day.key)
+    onAddEvent(day.key)
+  }
+
+  return (
+    <div className="calendar-month-split-view">
+      {/* Left: Compact Calendar */}
+      <div className="month-calendar-panel">
+        <div className="month-calendar-header">
+          <button className="month-nav-btn" onClick={handlePrev}>
+            <ChevronLeft size={20} />
+          </button>
+          <h2 className="month-calendar-title">{monthLabel}</h2>
+          <button className="month-nav-btn" onClick={handleNext}>
+            <ChevronRight size={20} />
+          </button>
+        </div>
+
+        <div className="month-calendar-grid">
+          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+            <div key={day} className="month-calendar-weekday">
+              {day}
+            </div>
+          ))}
+
+          {monthDays.map((day, idx) => {
+            const dayEvents = eventsByDate.get(day.key) || []
+            const hasEvents = dayEvents.length > 0
+
+            return (
+              <button
+                key={`${day.key}-${idx}`}
+                className={`month-calendar-day ${day.isToday ? 'today' : ''} ${
+                  selectedDate === day.key ? 'selected' : ''
+                } ${hasEvents ? 'has-events' : ''}`}
+                onClick={() => handleDayClick(day)}
+                style={day.style}
+              >
+                <span className="day-num">{day.dayNumber}</span>
+                {hasEvents && (
+                  <div className="day-event-dots">
+                    {dayEvents.slice(0, 3).map((event, i) => (
+                      <span
+                        key={event.id}
+                        className="event-dot"
+                        style={{ background: event.color }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </button>
+            )
+
+          })}
+        </div>
+      </div>
+
+      {/* Right: Upcoming Events */}
+      <div className="month-events-panel">
+        <div className="month-events-header">
+          <h3 className="month-events-title">Upcoming Events</h3>
+          <button className="month-add-event-btn" onClick={() => onAddEvent(getTodayKey())}>
+            <Plus size={18} />
+            Add Event
+          </button>
+        </div>
+
+        <div className="month-events-list">
+          {upcomingEvents.length === 0 ? (
+            <div className="month-events-empty">
+              <CalendarIcon size={48} opacity={0.3} />
+              <p>No upcoming events</p>
+              <span>Click on any date to add an event</span>
+            </div>
+          ) : (
+            upcomingEvents.map((event) => {
+              const eventDate = new Date(event.dateKey)
+              const dateLabel = eventDate.toLocaleDateString(undefined, {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+              })
+
+              return (
+                <div key={event.id} className="month-event-card">
+                  <div
+                    className="month-event-color-bar"
+                    style={{ background: event.color }}
+                  />
+                  <div className="month-event-content">
+                    <div className="month-event-header-row">
+                      <h4 className="month-event-card-title">{event.title}</h4>
+                      <button
+                        className="month-event-card-delete"
+                        onClick={() => onDeleteEvent(event.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="month-event-meta">
+                      <span className="month-event-date">{dateLabel}</span>
+                      {event.startTime && (
+                        <>
+                          <span className="month-event-separator">•</span>
+                          <span className="month-event-time">
+                            {event.startTime}
+                            {event.duration && ` (${event.duration})`}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {event.notes && (
+                      <p className="month-event-notes">{event.notes}</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function CalendarPage() {
+  const { addTask } = useTasks()
+  const [viewMode, setViewMode] = useState('week') // 'week' or 'month'
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
+    const d = new Date()
+    const day = d.getDay()
+    const diff = d.getDate() - day
+    return new Date(d.setDate(diff))
+  })
   const [events, setEvents] = useState(() => loadEvents())
   const [showEventModal, setShowEventModal] = useState(false)
+  const [modalDefaultDate, setModalDefaultDate] = useState(getTodayKey())
+  const gridContainerRef = useRef(null)
 
   // load events on mount (keeps current state if already set)
   useEffect(() => {
@@ -83,17 +338,6 @@ export default function CalendarPage() {
     saveEvents(events)
   }, [events])
 
-  const days = useMemo(() => buildMonthDays(year, month), [year, month])
-
-  const monthLabel = useMemo(
-    () =>
-      new Date(year, month, 1).toLocaleDateString(undefined, {
-        month: 'long',
-        year: 'numeric',
-      }),
-    [year, month],
-  )
-
   const eventsByDate = useMemo(() => {
     const map = new Map()
     events.forEach((e) => {
@@ -101,7 +345,7 @@ export default function CalendarPage() {
       map.get(e.dateKey).push(e)
     })
     // sort events by startTime if present
-    for (const [k, arr] of map.entries()) {
+    for (const arr of map.values()) {
       arr.sort((a, b) => {
         if (a.startTime && b.startTime)
           return a.startTime.localeCompare(b.startTime)
@@ -110,49 +354,6 @@ export default function CalendarPage() {
     }
     return map
   }, [events])
-
-  const selectedTasks = useMemo(
-    () => getTasksForDate(selectedDateKey),
-    [getTasksForDate, selectedDateKey],
-  )
-
-  // selected date events
-  const selectedEvents = eventsByDate.get(selectedDateKey) || []
-
-  // navigation
-  const handlePrevMonth = () => {
-    setMonth((m) => {
-      if (m === 0) {
-        setYear((y) => y - 1)
-        return 11
-      }
-      return m - 1
-    })
-  }
-  const handleNextMonth = () => {
-    setMonth((m) => {
-      if (m === 11) {
-        setYear((y) => y + 1)
-        return 0
-      }
-      return m + 1
-    })
-  }
-
-  // keyboard nav left/right (month)
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'ArrowLeft') handlePrevMonth()
-      if (e.key === 'ArrowRight') handleNextMonth()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
-
-  const handleSelectDay = (day) => {
-    if (!day) return
-    setSelectedDateKey(day.key)
-  }
 
   // create / update events
   const createEvent = ({
@@ -175,191 +376,274 @@ export default function CalendarPage() {
       createdAt: new Date().toISOString(),
     }
     setEvents((prev) => [e, ...prev])
-    // also ensure the selected day is the event day
-    setSelectedDateKey(dateKey)
   }
 
   const deleteEvent = (id) => {
     setEvents((prev) => prev.filter((e) => e.id !== id))
   }
 
-  const eventCountFor = (dateKey) => {
-    const arr = eventsByDate.get(dateKey) || []
-    return arr.length
-  }
+  const weekDays = useMemo(
+    () => getWeekDays(currentWeekStart),
+    [currentWeekStart],
+  )
+  const timeSlots = useMemo(() => generateTimeSlots(), [])
 
-  const todayKey = getTodayKey()
-
-  // quick create: create a task linked to event
-  const addTaskFromEvent = (ev) => {
-    addTask({
-      title: ev.title,
-      type: 'event',
-      sourceId: ev.id,
-      dateKey: ev.dateKey,
-      notes: ev.notes || '',
+  const handlePrevWeek = () => {
+    setCurrentWeekStart((prev) => {
+      const newDate = new Date(prev)
+      newDate.setDate(prev.getDate() - 7)
+      return newDate
     })
-    alert('Task created for event.')
   }
 
-  // small helper to format day aria label
-  const dayAriaLabel = (day) => {
-    if (!day) return 'Empty'
-    return `${day.weekday} ${day.label}`
+  const handleNextWeek = () => {
+    setCurrentWeekStart((prev) => {
+      const newDate = new Date(prev)
+      newDate.setDate(prev.getDate() + 7)
+      return newDate
+    })
   }
 
-  // day cell renderer helper
-  const renderEventIndicators = (dateKey) => {
-    const arr = eventsByDate.get(dateKey) || []
-    if (!arr.length) return null
-    const max = 3 // show up to 3 dots
-    return (
-      <div className="cal-event-indicators" aria-hidden>
-        {arr.slice(0, max).map((ev) => (
-          <span
-            key={ev.id}
-            className="cal-event-dot"
-            style={{ background: ev.color || 'var(--accent-pink)' }}
-            title={ev.title}
-          />
-        ))}
-        {arr.length > max && (
-          <span className="cal-event-more">+{arr.length - max}</span>
-        )}
-      </div>
-    )
+  const handleToday = () => {
+    const d = new Date()
+    const day = d.getDay()
+    const diff = d.getDate() - day
+    setCurrentWeekStart(new Date(d.setDate(diff)))
   }
 
-  // quick new event form state (for right-side panel)
-  const [form, setForm] = useState({
-    title: '',
-    startTime: '',
-    duration: '',
-    color: '#ff7ab6',
-    notes: '',
+  const weekLabel = useMemo(() => {
+    const start = weekDays[0]?.date
+    const end = weekDays[6]?.date
+    if (!start || !end) return ''
+
+    const startMonth = start.toLocaleDateString(undefined, { month: 'short' })
+    const endMonth = end.toLocaleDateString(undefined, { month: 'short' })
+    const year = start.getFullYear()
+
+    if (startMonth === endMonth) {
+      return `${startMonth} ${start.getDate()} - ${end.getDate()}, ${year}`
+    }
+    return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}, ${year}`
+  }, [weekDays])
+
+  const handleAddEvent = (dateKey) => {
+    setModalDefaultDate(dateKey)
+    setShowEventModal(true)
+  }
+
+  // Get current time indicator position - updates every minute
+  const [currentTimePosition, setCurrentTimePosition] = useState(() => {
+    const now = new Date()
+    const hours = now.getHours()
+    const minutes = now.getMinutes()
+    if (hours < 6 || hours > 23) return null
+
+    const totalMinutes = hours * 60 + minutes
+    const baseMinutes = 6 * 60
+    return ((totalMinutes - baseMinutes) / 60) * 80
   })
 
+  // Update time indicator every minute
   useEffect(() => {
-    // reset form when date changes
-    setForm({
-      title: '',
-      startTime: '',
-      duration: '',
-      color: '#ff7ab6',
-      notes: '',
-    })
-  }, [selectedDateKey])
+    const updateTimeIndicator = () => {
+      const now = new Date()
+      const hours = now.getHours()
+      const minutes = now.getMinutes()
+      if (hours < 6 || hours > 23) {
+        setCurrentTimePosition(null)
+        return
+      }
 
-  const submitForm = (e) => {
-    e.preventDefault()
-    if (!form.title.trim()) {
-      alert('Please enter an event title')
-      return
+      const totalMinutes = hours * 60 + minutes
+      const baseMinutes = 6 * 60
+      setCurrentTimePosition(((totalMinutes - baseMinutes) / 60) * 80)
     }
-    createEvent({
-      title: form.title.trim(),
-      dateKey: selectedDateKey,
-      startTime: form.startTime,
-      duration: form.duration,
-      color: form.color,
-      notes: form.notes,
-    })
-    setForm({
-      title: '',
-      startTime: '',
-      duration: '',
-      color: form.color || '#ff7ab6',
-      notes: '',
-    })
-  }
+
+    const interval = setInterval(updateTimeIndicator, 60000) // Update every minute
+    return () => clearInterval(interval)
+  }, [])
+
+  // Auto-scroll to current time on mount
+  useEffect(() => {
+    if (gridContainerRef.current && currentTimePosition !== null) {
+      const scrollContainer = gridContainerRef.current.parentElement
+      if (scrollContainer) {
+        // Scroll to current time minus some offset to center it
+        const scrollTo = Math.max(0, currentTimePosition - 200)
+        scrollContainer.scrollTop = scrollTo
+      }
+    }
+  }, [currentTimePosition])
 
   return (
-    <div className="calendar-page">
-      {/* Calendar panel */}
-      <Card>
-        <SectionTitle
-          title="Calendar"
-          subtitle="See your tasks & events across the month."
-        />
-        <div className="calendar-header">
+    <div className="calendar-page-new">
+      {/* Header */}
+      <div className="calendar-header-new">
+        <div className="calendar-header-left">
+          <h1 className="calendar-title">Calendar</h1>
+          <div className="calendar-nav-controls">
+            <button className="cal-nav-btn-new" onClick={handlePrevWeek}>
+              <ChevronLeft size={18} />
+            </button>
+            <button className="cal-today-btn" onClick={handleToday}>
+              Today
+            </button>
+            <button className="cal-nav-btn-new" onClick={handleNextWeek}>
+              <ChevronRight size={18} />
+            </button>
+            <span className="calendar-week-label">{weekLabel}</span>
+          </div>
+        </div>
+        <div className="calendar-header-actions">
           <button
-            className="cal-nav-btn"
-            onClick={handlePrevMonth}
-            aria-label="Previous month"
+            className={`cal-view-toggle ${viewMode === 'week' ? 'active' : ''}`}
+            onClick={() => setViewMode('week')}
           >
-            ‹
+            Week
           </button>
-          <div className="cal-month-label">{monthLabel}</div>
           <button
-            className="cal-nav-btn"
-            onClick={handleNextMonth}
-            aria-label="Next month"
+            className={`cal-view-toggle ${viewMode === 'month' ? 'active' : ''}`}
+            onClick={() => setViewMode('month')}
           >
-            ›
+            <CalendarIcon size={16} />
+            Month
+          </button>
+          <button
+            className="cal-add-btn"
+            onClick={() => handleAddEvent(getTodayKey())}
+          >
+            <Plus size={18} />
+            Add Event
           </button>
         </div>
+      </div>
 
-        <div className="calendar-grid" role="grid" aria-label="Month calendar">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((w) => (
-            <div key={w} className="calendar-weekday">
-              {w}
+      {/* Conditional View */}
+      {viewMode === 'month' ? (
+        <MonthView
+          events={events}
+          eventsByDate={eventsByDate}
+          onAddEvent={handleAddEvent}
+          onDeleteEvent={deleteEvent}
+        />
+      ) : (
+        <div className="calendar-week-view">
+        {/* Time column */}
+        <div className="calendar-time-column">
+          <div className="calendar-time-header">GMT +07</div>
+          {timeSlots.map((slot) => (
+            <div key={slot.hour} className="calendar-time-slot">
+              <span className="time-label">{slot.label}</span>
             </div>
           ))}
+        </div>
 
-          {days.map((day, idx) => {
-            if (!day)
-              return (
-                <div key={`empty-${idx}`} className="calendar-cell empty" />
+        {/* Days columns */}
+        <div className="calendar-days-grid">
+          {/* Day headers */}
+          <div className="calendar-day-headers">
+            {weekDays.map((day) => (
+              <div
+                key={day.key}
+                className={`calendar-day-header ${day.isToday ? 'today' : ''}`}
+              >
+                <div className="day-weekday">{day.weekday}</div>
+                <div className={`day-number ${day.isToday ? 'today' : ''}`}>
+                  {day.dayNumber}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Grid lines and events */}
+          <div className="calendar-grid-container" ref={gridContainerRef}>
+            {/* Background grid */}
+            <div className="calendar-grid-lines">
+              {timeSlots.map((slot) => (
+                <div key={slot.hour} className="grid-hour-line" />
+              ))}
+            </div>
+
+            {/* Current time indicator */}
+            {currentTimePosition !== null && (
+              <div
+                className="current-time-indicator"
+                style={{ top: `${currentTimePosition}px` }}
+              >
+                <div className="time-indicator-dot" />
+                <div className="time-indicator-line" />
+              </div>
+            )}
+
+            {/* Day columns with events */}
+            {weekDays.map((day) => {
+              const dayEvents = (eventsByDate.get(day.key) || []).filter(
+                (e) => e.startTime,
               )
 
-            const dayTasks = (tasks || []).filter((t) => t.dateKey === day.key)
-            const hasTasks = dayTasks.length > 0
-            const evCount = eventCountFor(day.key)
-            const isSelected = selectedDateKey === day.key
-            const isToday = day.isToday
+              return (
+                <div
+                  key={day.key}
+                  className="calendar-day-column"
+                  onClick={() => handleAddEvent(day.key)}
+                >
+                  {dayEvents.map((event) => {
+                    const position = calculateEventPosition(
+                      event.startTime,
+                      event.duration,
+                    )
+                    if (!position) return null
 
-            return (
-              <button
-                key={day.key}
-                className={
-                  'calendar-cell' +
-                  (isToday ? ' today' : '') +
-                  (hasTasks ? ' has-tasks' : '') +
-                  (isSelected ? ' selected' : '')
-                }
-                onClick={() => handleSelectDay(day)}
-                aria-label={dayAriaLabel(day)}
-                title={`${day.label} — ${evCount} events, ${dayTasks.length} tasks`}
-              >
-                <span className="cal-day-number">{day.dayNumber}</span>
-
-                {/* show a small count or event indicators */}
-                <div className="cal-mini-row">
-                  {renderEventIndicators(day.key)}
-                  {hasTasks && (
-                    <div
-                      className="cal-task-dot"
-                      title={`${dayTasks.length} tasks`}
-                    >
-                      ●
-                    </div>
-                  )}
+                    return (
+                      <div
+                        key={event.id}
+                        className="calendar-event-card"
+                        style={{
+                          top: `${position.top}px`,
+                          height: `${Math.max(position.height, 40)}px`,
+                          borderLeft: `3px solid ${event.color}`,
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                        }}
+                      >
+                        <div className="event-card-content">
+                          <div className="event-card-title">{event.title}</div>
+                          <div className="event-card-time">
+                            {event.startTime}
+                            {event.duration && ` • ${event.duration}`}
+                          </div>
+                          {event.notes && (
+                            <div className="event-card-notes">{event.notes}</div>
+                          )}
+                        </div>
+                        <button
+                          className="event-card-delete"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteEvent(event.id)
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )
+                  })}
                 </div>
-              </button>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
-      </Card>
+      </div>
+      )}
 
-      {/* Event modal (opens when showEventModal is true) */}
+      {/* Event Modal */}
       <EventModal
         open={showEventModal}
         onClose={() => setShowEventModal(false)}
-        defaultDateKey={selectedDateKey}
+        defaultDateKey={modalDefaultDate}
         onCreate={(payload) => {
-          // createEvent expects: { title, dateKey, startTime, duration, color, notes }
           createEvent(payload)
-          // optionally: also create a Task if user selected "Task" type
           if (payload.type === 'Task') {
             addTask({
               title: payload.title,
@@ -371,124 +655,6 @@ export default function CalendarPage() {
           }
         }}
       />
-
-      {/* Right side: day details and event creation */}
-      <Card>
-        <SectionTitle
-          title="Day details"
-          subtitle={
-            selectedDateKey
-              ? new Date(selectedDateKey).toLocaleDateString(undefined, {
-                  weekday: 'long',
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })
-              : 'Select a day'
-          }
-        />
-        <div className="calendar-day-panel">
-          <div className="day-events-list">
-            {selectedEvents.length === 0 && (
-              <p className="cal-empty">
-                No events for this day. Create one below.
-              </p>
-            )}
-
-            {selectedEvents.map((ev) => (
-              <div key={ev.id} className="day-event-row">
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <div
-                    className="event-color"
-                    style={{ background: ev.color }}
-                  />
-                  <div>
-                    <div className="event-title">{ev.title}</div>
-                    <div className="event-meta">
-                      {ev.startTime
-                        ? ev.startTime +
-                          (ev.duration ? ' • ' + ev.duration : '')
-                        : 'All day'}{' '}
-                      • {ev.notes || '—'}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <button
-                    className="btn-small"
-                    onClick={() => addTaskFromEvent(ev)}
-                  >
-                    Create Task
-                  </button>
-                  <button
-                    className="btn-ghost"
-                    onClick={() => deleteEvent(ev.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              gap: 8,
-              alignItems: 'center',
-              marginTop: 8,
-            }}
-          >
-            <button
-              className="btn-primary"
-              onClick={() => setShowEventModal(true)}
-            >
-              Add event
-            </button>
-            <button
-              className="btn-ghost"
-              onClick={() => {
-                /* quick clear placeholder */
-              }}
-            >
-              Clear
-            </button>
-          </div>
-
-          <div style={{ marginTop: 10 }}>
-            <div
-              style={{
-                fontSize: 12,
-                color: 'var(--text-soft)',
-                marginBottom: 6,
-              }}
-            >
-              Tasks for this day
-            </div>
-            {selectedTasks.length === 0 && (
-              <div className="cal-empty">No tasks scheduled for this day.</div>
-            )}
-            {selectedTasks.map((t) => (
-              <label key={t.id} className="cal-task-row">
-                <input
-                  type="checkbox"
-                  checked={t.done}
-                  onChange={() => toggleTask(t.id)}
-                />
-                <span
-                  style={{
-                    textDecoration: t.done ? 'line-through' : 'none',
-                    color: t.done ? 'var(--text-faint)' : 'var(--text-main)',
-                  }}
-                >
-                  {t.title}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-      </Card>
     </div>
   )
 }

@@ -1,297 +1,182 @@
-import React, { useMemo, useState } from 'react'
-import Card from '../Components/UI/Card.jsx'
-import SectionTitle from '../Components/UI/SectionTitle.jsx'
-import Button from '../Components/UI/Button.jsx'
-import FocusTimer from '../Components/dashboard/FocusTimer.jsx'
+import React, { useState, useEffect } from 'react'
+import { useChallenge } from '../Context/ChallengeContext.jsx'
 import { useTasks } from '../Context/TaskContext.jsx'
+import { useHabits } from '../Context/HabitContext.jsx'
+import { useGamification } from '../Context/GamificationContext.jsx'
+import { Trophy, Bell, CloudSun, Flame, Moon, Sun } from 'lucide-react'
+import { useTheme } from '../Context/ThemeContext.jsx'
 
-export default function Dashboard() {
-  const [focus, setFocus] = useState('DSA + Frontend + Health')
-  const [mood, setMood] = useState(3)
+// Wigggle Widgets
+import TasksWidget from '../Components/Widgets/TasksWidget.jsx'
+import WeeklyProgressWidget from '../Components/Widgets/WeeklyProgressWidget.jsx'
+import DailyStatsWidget from '../Components/Widgets/DailyStatsWidget.jsx'
+import HabitsWidget from '../Components/Widgets/HabitsWidget.jsx'
 
-  const { tasks, todayKey, todayTasks, todayCounts, addTask, toggleTask } =
-    useTasks()
-  const [newTodo, setNewTodo] = useState('')
+// Helper to get formatted date
+const getTodayString = () => new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+const getGreeting = () => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 18) return 'Good afternoon'
+    return 'Good evening'
+}
 
-  const completed = todayCounts.completed
-  const totalToday = todayCounts.total
-  const score =
-    totalToday === 0 ? 0 : Math.round((completed / totalToday) * 100)
+export default function Dashboard() { 
+  const { activeChallenge, completedDays, activeDay } = useChallenge()
+  const { tasks } = useTasks()
+  const { habits, toggleDay } = useHabits()
 
-  const handleAddTodo = () => {
-    if (!newTodo.trim()) return
-    addTask({ title: newTodo, type: 'manual' })
-    setNewTodo('')
-  }
+  const { xp, level, getLevelProgress, title: userTitle } = useGamification()
+  const { theme, toggleTheme } = useTheme()
+  
+  const [plannerEvents, setPlannerEvents] = useState([])
+  useEffect(() => {
+      try {
+        const raw = localStorage.getItem('cb-planner-custom-v1')
+        if (raw) {
+            const data = JSON.parse(raw)
+            const d = new Date()
+            const y = d.getFullYear()
+            const m = String(d.getMonth() + 1).padStart(2, '0')
+            const day = String(d.getDate()).padStart(2, '0')
+            const key = `${y}-${m}-${day}`
+            setPlannerEvents(data[key] || [])
+        }
+      } catch (e) {}
+  }, [])
 
-  // --- LAST 7 DAYS ANALYTICS ---
-  const last7 = useMemo(() => {
-    const out = []
-    const today = new Date()
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(today)
-      d.setDate(today.getDate() - i)
-
+  const todoTasks = tasks.filter(t => !t.done).slice(0, 5) // Show top 5
+  
+  // Habits for today
+  const todayKey = (() => {
+      const d = new Date()
       const y = d.getFullYear()
       const m = String(d.getMonth() + 1).padStart(2, '0')
       const day = String(d.getDate()).padStart(2, '0')
-      const key = `${y}-${m}-${day}`
-
-      const dayTasks = tasks.filter((t) => t.dateKey === key)
-      const total = dayTasks.length
-      const done = dayTasks.filter((t) => t.done).length
-      const percent = total === 0 ? 0 : Math.round((done / total) * 100)
-
-      out.push({
-        key,
-        label: d.toLocaleDateString(undefined, { day: 'numeric' }),
-        weekday: d.toLocaleDateString(undefined, { weekday: 'short' }),
-        total,
-        done,
-        percent,
-      })
-    }
-
-    return out
-  }, [tasks])
-
-  const totalTasks7 = last7.reduce((sum, d) => sum + d.total, 0)
-  const totalDone7 = last7.reduce((sum, d) => sum + d.done, 0)
-
-  const avgCompletion7 =
-    last7.length === 0
-      ? 0
-      : Math.round(last7.reduce((sum, d) => sum + d.percent, 0) / last7.length)
-
-  const bestDay =
-    last7.length === 0
-      ? null
-      : last7.reduce((best, d) => (d.percent > best.percent ? d : best))
-
-  const fullCompletionStreak = (() => {
-    let streak = 0
-    for (let i = last7.length - 1; i >= 0; i--) {
-      const d = last7[i]
-      if (d.total > 0 && d.done === d.total) streak++
-      else break
-    }
-    return streak
+      return `${y}-${m}-${day}`
   })()
 
+  // GLASSMORPHISM STYLE
+  const glassStyle = {
+      background: 'rgba(255, 255, 255, 0.03)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      border: '1px solid rgba(255, 255, 255, 0.05)',
+      borderRadius: '24px',
+      padding: '24px'
+  }
+
   return (
-    <div className="dashboard-grid">
-      {/* Left column */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Card>
-          <SectionTitle
-            title="Today overview"
-            subtitle="Set your focus and mood for the day."
-          />
-          <div
-            style={{
-              marginTop: 8,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-            }}
-          >
-            <label style={{ fontSize: '0.8rem' }}>
-              Focus of the day
-              <input
-                style={{
-                  marginTop: 4,
-                  width: '100%',
-                  padding: '6px 8px',
-                  borderRadius: 10,
-                  border: '1px solid var(--border-subtle)',
-                  background: 'rgba(9,11,16,0.9)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.8rem',
-                  outline: 'none',
-                }}
-                value={focus}
-                onChange={(e) => setFocus(e.target.value)}
-              />
-            </label>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <label style={{ fontSize: '0.8rem' }}>
-                Mood (1–5)
-                <input
-                  type="number"
-                  min={1}
-                  max={5}
-                  value={mood}
-                  onChange={(e) => setMood(Number(e.target.value || 0))}
-                  style={{
-                    marginLeft: 6,
-                    width: 40,
-                    padding: '4px 6px',
-                    borderRadius: 8,
-                    border: '1px solid var(--border-subtle)',
-                    background: 'rgba(9,11,16,0.9)',
-                    color: 'var(--text-main)',
-                    fontSize: '0.8rem',
-                  }}
-                />
-              </label>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-soft)' }}>
-                <div>
-                  ✅ Tasks: <strong>{completed}</strong> / {totalToday}
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px' }}>
+        
+        {/* HEADER: Right aligned pills (Level, Weather, Bell) */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px' }}>
+            
+            {/* 3.2 LEVEL PILL (Refactored) */}
+            <div style={{ 
+                display: 'flex', alignItems: 'center', gap: '10px', 
+                padding: '8px 16px', borderRadius: '50px',
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                cursor: 'pointer'
+            }}>
+                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'linear-gradient(135deg, #4f46e5, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, color: 'white' }}>
+                    {level}
                 </div>
-                <div>
-                  ⭐ Score: <strong>{score}</strong>/100
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <SectionTitle
-            title="Today tasks"
-            subtitle="Your most important actions today."
-          />
-          <div
-            style={{
-              marginTop: 8,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-            }}
-          >
-            {todayTasks.map((t) => (
-              <label
-                key={t.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '6px 8px',
-                  borderRadius: 10,
-                  border: '1px solid var(--border-subtle)',
-                  background: 'rgba(9,11,16,0.9)',
-                  fontSize: '0.8rem',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={t.done}
-                    onChange={() => toggleTask(t.id)}
-                  />
-                  <span
-                    style={{
-                      textDecoration: t.done ? 'line-through' : 'none',
-                      color: t.done ? 'var(--text-faint)' : 'var(--text-main)',
-                    }}
-                  >
-                    {t.title}
-                  </span>
-                </div>
-              </label>
-            ))}
-
-            <div
-              style={{
-                display: 'flex',
-                gap: 6,
-                marginTop: 4,
-              }}
-            >
-              <input
-                style={{
-                  flex: 1,
-                  padding: '6px 8px',
-                  borderRadius: 10,
-                  border: '1px solid var(--border-subtle)',
-                  background: 'rgba(9,11,16,0.9)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.8rem',
-                  outline: 'none',
-                }}
-                placeholder="Add a new task..."
-                value={newTodo}
-                onChange={(e) => setNewTodo(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddTodo()
-                }}
-              />
-              <Button variant="primary" onClick={handleAddTodo}>
-                Add
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Right column */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Card>
-          <SectionTitle
-            title="Focus timer"
-            subtitle="Deep work sessions with a simple timer."
-          />
-          <FocusTimer />
-        </Card>
-
-        <Card>
-          <SectionTitle
-            title="Last 7 days"
-            subtitle="Task completion trend for the past week."
-          />
-          <div className="analytics-card">
-            <div className="analytics-stats-row">
-              <div className="analytics-stat">
-                <div className="label">Avg completion</div>
-                <div className="value">{avgCompletion7}%</div>
-              </div>
-              <div className="analytics-stat">
-                <div className="label">Tasks done</div>
-                <div className="value">
-                  {totalDone7}/{totalTasks7}
-                </div>
-              </div>
-              <div className="analytics-stat">
-                <div className="label">Full-complete streak</div>
-                <div className="value">{fullCompletionStreak}d</div>
-              </div>
-            </div>
-
-            <div className="analytics-bars">
-              {last7.map((d) => {
-                const barHeight = 18 + d.percent * 0.7 // min height + scale
-                return (
-                  <div key={d.key} className="analytics-bar-wrapper">
-                    <div
-                      className={
-                        'analytics-bar' +
-                        (d.percent === 0 ? ' empty' : '') +
-                        (d.key === todayKey ? ' today' : '')
-                      }
-                      style={{ height: `${barHeight}px` }}
-                      title={`${d.weekday} ${d.key} • ${d.done}/${d.total} tasks (${d.percent}%)`}
-                    />
-                    <div className="analytics-bar-day">{d.label}</div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {bestDay && (
-              <div className="analytics-footer">
-                <span>
-                  Best: {bestDay.weekday} ({bestDay.percent}%)
+                <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{userTitle}</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '10px', marginLeft: '5px' }}>
+                     {Math.round(xp)} XP
                 </span>
-                <span>
-                  Days with tasks: {last7.filter((d) => d.total > 0).length}/
-                  {last7.length}
-                </span>
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
+            </div>
+
+            {/* UI TOGGLE PILL */}
+            <div 
+                onClick={toggleTheme}
+                style={{ 
+                    display: 'flex', alignItems: 'center', gap: '8px', 
+                    padding: '8px 12px', borderRadius: '50px',
+                    background: 'var(--wigggle-bg-inner)', border: '1px solid var(--wigggle-border)',
+                    cursor: 'pointer', color: 'var(--text-secondary)'
+                }}>
+                {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+            </div>
+
+            {/* 3.1 PILL SHAPE WEATHER */}
+            <div style={{ 
+                display: 'flex', alignItems: 'center', gap: '8px', 
+                padding: '8px 16px', borderRadius: '50px',
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                cursor: 'pointer'
+            }}>
+                <CloudSun size={18} />
+                <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>24°C Cloudy</span>
+            </div>
+            
+            {/* NOTIFICATION BELL */}
+            <div style={{ position: 'relative', cursor: 'pointer', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Bell size={20} />
+                <div style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', background: 'var(--accent-primary)', borderRadius: '50%', border: '1px solid #0f0f0f' }} />
+            </div>
+        </div>
+
+        {/* MAIN WIDGET GRID */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1.3fr) 1fr', gap: '32px' }}>
+            
+            {/* LEFT COLUMN: Challenge & Stats */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                
+                {activeChallenge ? (
+                    <div style={{ ...glassStyle, position: 'relative', overflow: 'hidden', padding: 0 }}>
+                         {/* Header Image / Gradient */}
+                         <div style={{ height: '100px', background: 'linear-gradient(135deg, rgba(34,197,94,0.4), rgba(34,197,94,0.0))' }} />
+                         <div style={{ padding: '24px' }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '-50px' }}>
+                                 <div>
+                                     <div style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.7, marginBottom: '4px' }}>ACTIVE CHALLENGE</div>
+                                     <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>{activeChallenge.title}</h2>
+                                 </div>
+                                 <div style={{ textAlign: 'right' }}>
+                                     <div style={{ fontSize: '2.5rem', fontWeight: 800 }}>{activeDay}</div>
+                                     <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>/ {activeChallenge.duration} Days</div>
+                                 </div>
+                             </div>
+
+                             <div style={{ marginTop: '24px' }}>
+                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                     <span>Progress</span>
+                                     <span>{Math.round((completedDays.length / activeChallenge.duration) * 100)}%</span>
+                                 </div>
+                                 <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>
+                                     <div style={{ width: `${(completedDays.length / activeChallenge.duration) * 100}%`, height: '100%', background: '#4ade80', borderRadius: '4px' }} />
+                                 </div>
+                             </div>
+                         </div>
+                    </div>
+                ) : (
+                    <div style={{ ...glassStyle, textAlign: 'center', padding: '48px 24px' }}>
+                        <Flame size={48} style={{ opacity: 0.3, marginBottom: '16px' }} />
+                        <h3>No Active Challenge</h3>
+                        <p style={{ color: 'var(--text-secondary)' }}>Time to step up? Go to Challenges tab.</p>
+                    </div>
+                )}
+
+                {/* WIGGGLE UI: Extra Stats moved to Left Column for balance */}
+                <DailyStatsWidget />
+                <WeeklyProgressWidget />
+
+            </div>
+
+            {/* RIGHT COLUMN: Tasks & Habits */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                
+                {/* WIGGGLE UI: Tasks Widget */}
+                <TasksWidget />
+
+                {/* WIGGGLE UI: Habits Widget */}
+                <HabitsWidget />
+
+            </div>
+        </div>
+
     </div>
   )
 }

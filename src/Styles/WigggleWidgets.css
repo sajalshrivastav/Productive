@@ -1,0 +1,223 @@
+/* Wigggle UI Theme & Utilities */
+:root {
+    --wigggle-bg-card: #0f0f0f;
+    /* Very dark, almost black */
+    --wigggle-bg-inner: #1a1a1a;
+    --wigggle-border: rgba(255, 255, 255, 0.08);
+    --wigggle-text-main: #ffffff;
+    --wigggle-text-sub: #a1a1aa;
+    --wigggle-accent-green: #22c55e;
+    --wigggle-accent-yellow: #eab308;
+    --wigggle-accent-red: #ef4444;
+    --wigggle-accent-purple: #a855f7;
+    --wigggle-accent-blue: #3b82f6;
+}
+
+.wigggle-card {
+    background-color: var(--wigggle-bg-card);
+    border: 1px solid var(--wigggle-border);
+    border-radius: 24px;
+    padding: 24px;
+    color: var(--wigggle-text-main);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.wigggle-glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Tasks Widget Specifics */
+.wigggle-tasks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.wigggle-big-stat {
+    font-size: 3.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.wigggle-stat-label {
+    color: var(--wigggle-text-sub);
+    font-size: 1rem;
+    margin-top: 4px;
+}
+
+.wigggle-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.wigggle-task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.wigggle-task-item:hover {
+    opacity: 1;
+}
+
+.wigggle-task-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--wigggle-text-sub);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.wigggle-task-check.checked {
+    border-color: var(--wigggle-accent-green);
+    color: var(--wigggle-accent-green);
+}
+
+.wigggle-task-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.wigggle-task-title {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.wigggle-task-time {
+    font-size: 0.8rem;
+    color: var(--wigggle-text-sub);
+}
+
+/* Weekly Progress (Concentric Circles) */
+/* Note: Implementing complex circles with SVG in component, basic layout here */
+.wigggle-weekly-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.wigggle-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wigggle-legend-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+}
+
+/* Daily Stats */
+.wigggle-stats-row {
+    display: flex;
+    justify-content: space-between;
+    text-align: center;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--wigggle-border);
+    margin-bottom: 24px;
+}
+
+.wigggle-stat-val {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.wigggle-stat-title {
+    color: var(--wigggle-text-sub);
+    font-size: 0.9rem;
+}
+
+.wigggle-circles-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.wigggle-circle-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.circle-progress-container {
+    width: 60px;
+    height: 60px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.circle-val {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+/* Habit Cards */
+.wigggle-habit-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.wigggle-habit-card {
+    background: var(--wigggle-bg-inner);
+    border: 1px solid var(--wigggle-border);
+    border-radius: 16px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.wigggle-habit-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.wigggle-habit-icon {
+    font-size: 1.5rem;
+}
+
+.wigggle-habit-info {
+    flex: 1;
+}
+
+.wigggle-habit-name {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.wigggle-habit-streak {
+    color: var(--wigggle-accent-yellow);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Single Streak Card */
+.wigggle-streak-card {
+    background: var(--wigggle-card);
+    border: 1px solid var(--wigggle-border);
+    border-radius: 24px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 180px;
+}

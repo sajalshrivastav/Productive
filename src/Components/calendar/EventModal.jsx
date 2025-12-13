@@ -42,14 +42,20 @@ export default function EventModal({
 
   // close on ESC
   useEffect(() => {
+    if (!open) return
     const onKey = (e) => {
       if (e.key === 'Escape') onClose && onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, open])
 
-  if (!open) return null
+  // simple focus trap: focus first input on open
+  useEffect(() => {
+    if (open) {
+      modalRef.current?.querySelector('input, textarea, select')?.focus()
+    }
+  }, [open])
 
   const handleCreate = (e) => {
     e.preventDefault()
@@ -74,10 +80,7 @@ export default function EventModal({
     onClose && onClose()
   }
 
-  // simple focus trap: focus first input on open
-  useEffect(() => {
-    modalRef.current?.querySelector('input, textarea, select')?.focus()
-  }, [])
+  if (!open) return null
 
   return (
     <div

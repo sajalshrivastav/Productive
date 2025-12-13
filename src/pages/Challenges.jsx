@@ -1,233 +1,126 @@
-import React, { useEffect, useState } from 'react'
-import Card from '../Components/UI/Card.jsx'
-import SectionTitle from '../Components/UI/SectionTitle.jsx'
-import Button from '../Components/UI/Button.jsx'
-import { useTasks } from '../Context/TaskContext.jsx'
-
-const STORAGE_KEY = 'cb-challenges-v1'
-
-function getTodayKey() {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+import React from 'react'
+import { useChallenge } from '../Context/ChallengeContext.jsx'
+import ChallengeCreator from '../Components/Challenges/ChallengeCreator.jsx'
+import { Trophy, CheckCircle, Calendar, Flame, Edit2, Save, X } from 'lucide-react'
+import { useState } from 'react'
+// ... (keep helper)
 
 export default function Challenges() {
-  const [challenges, setChallenges] = useState([])
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [color, setColor] = useState('pink')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [dailyTask, setDailyTask] = useState('')
+  const { activeChallenge, activeDay, completedDays, giveUp, updateChallenge } = useChallenge()
+  
+  const [isEditing, setIsEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
 
-  const { addTask } = useTasks()
-
-  // load from localStorage
-  useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      try {
-        setChallenges(JSON.parse(raw))
-      } catch (e) {
-        console.error('Failed to parse challenges', e)
-      }
-    }
-  }, [])
-
-  // save on changes
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(challenges))
-  }, [challenges])
-
-  const handleAddChallenge = () => {
-    if (!name.trim()) return
-    const todayKey = getTodayKey()
-    const challenge = {
-      id: 'c' + Date.now(),
-      name: name.trim(),
-      description: description.trim(),
-      color,
-      startDate: startDate || todayKey,
-      endDate: endDate || '',
-      dailyTask: dailyTask.trim(),
-      createdAt: new Date().toISOString(),
-      active: true,
-    }
-    setChallenges((prev) => [...prev, challenge])
-    setName('')
-    setDescription('')
-    setColor('pink')
-    setStartDate('')
-    setEndDate('')
-    setDailyTask('')
+  const startEdit = () => {
+      setEditTitle(activeChallenge.title)
+      setIsEditing(true)
   }
-
-  const handleToggleActive = (id) => {
-    setChallenges((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, active: !c.active } : c)),
-    )
-  }
-
-  const handleDelete = (id) => {
-    setChallenges((prev) => prev.filter((c) => c.id !== id))
-  }
-
-  const handleAddTodayTask = (challenge) => {
-    if (!challenge.dailyTask) return
-    addTask({
-      title: challenge.dailyTask,
-      type: 'challenge',
-      sourceId: challenge.id,
-      dateKey: getTodayKey(),
-    })
+  
+  const saveEdit = () => {
+      if(!editTitle.trim()) return
+      updateChallenge(activeChallenge._id || activeChallenge.id, { title: editTitle })
+      setIsEditing(false)
   }
 
   return (
-    <div className="challenges-page">
-      <Card>
-        <SectionTitle
-          title="Challenge system"
-          subtitle="Create 30-day, 75-hard, or custom challenges that feed your daily tasks."
-        />
-        <div className="challenge-form">
-          <div className="challenge-form-row">
-            <div className="challenge-field">
-              <label>Name</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="30 days of DSA"
-              />
-            </div>
-            <div className="challenge-field">
-              <label>Color</label>
-              <select value={color} onChange={(e) => setColor(e.target.value)}>
-                <option value="pink">Pink</option>
-                <option value="blue">Blue</option>
-                <option value="amber">Amber</option>
-                <option value="green">Green</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="challenge-form-row">
-            <div className="challenge-field">
-              <label>Start date</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="challenge-field">
-              <label>End date</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="challenge-field">
-            <label>Daily task text</label>
-            <input
-              value={dailyTask}
-              onChange={(e) => setDailyTask(e.target.value)}
-              placeholder="Solve 3 DSA questions"
-            />
-          </div>
-
-          <div className="challenge-field">
-            <label>Description</label>
-            <input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Short description of the challenge"
-            />
-          </div>
-
-          <div style={{ marginTop: 8 }}>
-            <Button variant="primary" onClick={handleAddChallenge}>
-              Add challenge
-            </Button>
-          </div>
+    <div className="animate-fade-in" style={{ 
+        display: 'grid', gridTemplateColumns: 'minmax(450px, 1.4fr) 1fr', gap: '40px', alignItems: 'start',
+        paddingBottom: '40px'
+    }}>
+        
+        {/* LEFT COLUMN: CREATOR FORM */}
+        <div>
+           <ChallengeCreator />
         </div>
-      </Card>
 
-      <div className="challenges-list">
-        {challenges.length === 0 && (
-          <p className="ch-empty-text">
-            No challenges yet. Create one above to start.
-          </p>
-        )}
+        {/* RIGHT COLUMN: ONGOING / UPCOMING */}
+        <div className="panel-card" style={{ 
+            background: 'var(--bg-surface)', borderRadius: '24px', padding: '32px',
+            border: '1px solid var(--border-subtle)', minHeight: '400px'
+        }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Trophy className="text-accent" /> Ongoing Challenge
+            </h2>
 
-        {challenges.map((c) => (
-          <Card key={c.id} className={`challenge-card challenge-${c.color}`}>
-            <div className="challenge-card-header">
-              <div className="challenge-title-block">
-                <div className="challenge-dot" />
-                <div>
-                  <div className="challenge-name">{c.name}</div>
-                  {c.description && (
-                    <div className="challenge-description">{c.description}</div>
-                  )}
-                  <div className="challenge-meta">
-                    {c.startDate || 'No start'} → {c.endDate || 'No end'}
-                  </div>
+            {!activeChallenge ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', border: '2px dashed var(--border-subtle)', borderRadius: '16px' }}>
+                    <Flame size={48} style={{ marginBottom: '16px', opacity: 0.2 }} />
+                    <p>No active challenge.</p>
+                    <p style={{ fontSize: '0.9rem', marginTop: '8px' }}>Start one on the left to transform yourself.</p>
                 </div>
-              </div>
+            ) : (
+                <div className="animate-fade-in">
+                    {/* Header Card */}
+                    <div style={{ 
+                        background: 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(0,0,0,0))', 
+                        padding: '24px', borderRadius: '16px', marginBottom: '24px',
+                        border: '1px solid rgba(34,197,94,0.2)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            {isEditing ? (
+                                <div style={{ display: 'flex', gap: '8px', flex: 1, marginBottom: '8px' }}>
+                                    <input 
+                                       value={editTitle}
+                                       onChange={e => setEditTitle(e.target.value)}
+                                       style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid var(--accent-primary)', background: 'var(--bg-surface)', color: 'white', fontWeight: 800, fontSize: '1.2rem' }}
+                                    />
+                                    <button onClick={saveEdit} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: '8px', padding: '0 12px', color: 'black' }}><Save size={18}/></button>
+                                    <button onClick={() => setIsEditing(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', padding: '0 12px', color: 'white' }}><X size={18}/></button>
+                                </div>
+                            ) : (
+                                <h3 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '8px' }}>{activeChallenge.title}</h3>
+                            )}
 
-              <button
-                className="challenge-delete-btn"
-                onClick={() => handleDelete(c.id)}
-              >
-                ✕
-              </button>
-            </div>
+                            {!isEditing && (
+                                <button onClick={startEdit} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                                    <Edit2 size={18} />
+                                </button>
+                            )}
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '16px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Calendar size={14}/> Day {activeDay} / {activeChallenge.durationDays}</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle size={14}/> {Math.round((completedDays.length / activeChallenge.durationDays) * 100)}% Complete</span>
+                        </div>
+                    </div>
 
-            <div className="challenge-body">
-              <div className="challenge-body-row">
-                <span className="challenge-label">Daily task</span>
-                <span className="challenge-daily-text">
-                  {c.dailyTask || '—'}
-                </span>
-              </div>
-              <div className="challenge-body-row">
-                <span className="challenge-label">Status</span>
-                <span className="challenge-status">
-                  {c.active ? 'Active' : 'Paused'}
-                </span>
-              </div>
-            </div>
+                    {/* Stats or Rules Summary */}
+                    <div style={{ marginBottom: '24px' }}>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '12px', color: 'var(--text-secondary)' }}>Daily Rules</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {activeChallenge.dailyActions.map((rule, i) => (
+                                <div key={i} style={{ 
+                                    padding: '12px 16px', background: 'var(--bg-panel)', borderRadius: '12px',
+                                    display: 'flex', alignItems: 'center', gap: '12px'
+                                }}>
+                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>{i+1}</div>
+                                    <span>{rule.text}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
 
-            <div className="challenge-footer">
-              <div className="challenge-footer-left">
-                <Button
-                  variant="primary"
-                  className="challenge-btn-small"
-                  onClick={() => handleAddTodayTask(c)}
-                >
-                  Add today&apos;s task
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="challenge-btn-small"
-                  onClick={() => handleToggleActive(c.id)}
-                >
-                  {c.active ? 'Pause' : 'Activate'}
-                </Button>
-              </div>
-              <div className="challenge-footer-right">
-                <span>Type: challenge</span>
-              </div>
+                    <button 
+                         onClick={giveUp}
+                         style={{ 
+                             width: '100%', padding: '16px', borderRadius: '12px', 
+                             background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
+                             border: '1px solid rgba(239, 68, 68, 0.2)', fontWeight: 600, cursor: 'pointer'
+                         }}
+                    >
+                        Give Up Challenge
+                    </button>
+                </div>
+            )}
+
+            {/* Upcoming Placeholder */}
+            <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border-subtle)' }}>
+                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px', opacity: 0.7 }}>Upcoming</h3>
+                 <div style={{ padding: '16px', background: 'var(--bg-panel)', borderRadius: '12px', opacity: 0.5 }}>
+                    <span style={{ fontSize: '0.9rem' }}>No upcoming challenges scheduled.</span>
+                 </div>
             </div>
-          </Card>
-        ))}
-      </div>
+        </div>
     </div>
   )
 }

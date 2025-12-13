@@ -1,33 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import HabitCard from '../Components/habits/HabitCard.jsx'
-import Card from '../Components/UI/Card.jsx'
-import SectionTitle from '../Components/UI/SectionTitle.jsx'
-import Button from '../Components/UI/Button.jsx'
-
-const STORAGE_KEY = 'cb-habits'
-
-const defaultHabits = [
-  {
-    id: 'h1',
-    name: 'Coding',
-    description: 'Solve at least 3 DSA questions.',
-    color: 'pink',
-    icon: '💻',
-    history: {},
-    streak: 0,
-    total: 0,
-  },
-  {
-    id: 'h2',
-    name: 'Workout',
-    description: 'Move your body for 30 minutes.',
-    color: 'green',
-    icon: '🏃',
-    history: {},
-    streak: 0,
-    total: 0,
-  },
-]
+import React, { useMemo, useState } from 'react'
+import HabitCreator from '../Components/habits/HabitCreator.jsx'
+import { useHabits } from '../Context/HabitContext.jsx'
+import { Check, Trash2, Flame, Edit2 } from 'lucide-react'
 
 function getDateKey(date = new Date()) {
   const y = date.getFullYear()
@@ -36,190 +10,162 @@ function getDateKey(date = new Date()) {
   return `${y}-${m}-${d}`
 }
 
-function buildLastDays(n = 56) {
+function buildLastDays(n = 14) {
   const out = []
   const today = new Date()
   for (let i = n - 1; i >= 0; i--) {
     const d = new Date(today)
     d.setDate(today.getDate() - i)
     const key = getDateKey(d)
-    const label = d.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    })
-    out.push({ key, label })
+    const label = d.toLocaleDateString(undefined, { weekday: 'narrow' }) 
+    out.push({ key, label, fullDate: d })
   }
   return out
 }
 
 export default function Habits() {
-  const [habits, setHabits] = useState(defaultHabits)
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [icon, setIcon] = useState('✨')
-  const [color, setColor] = useState('pink')
+  const { habits, addHabit, deleteHabit, toggleDay, updateHabit } = useHabits()
+  const days = useMemo(() => buildLastDays(14), [])
+  const todayKey = getDateKey()
 
-  const days = useMemo(() => buildLastDays(56), [])
+  const [editingId, setEditingId] = useState(null)
+  const [editData, setEditData] = useState({})
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw)
-        setHabits(parsed)
-      } catch (e) {
-        console.error('Failed to parse habits from storage', e)
-      }
-    }
-  }, [])
-
-  // Save whenever habits change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(habits))
-  }, [habits])
-
-  const recalcStats = (habit) => {
-    // compute streak from history and total completions
-    const keys = Object.keys(habit.history || {}).filter(
-      (k) => habit.history[k],
-    )
-    const total = keys.length
-
-    // streak (consecutive days ending today)
-    let streak = 0
-    const today = new Date()
-    const historySet = new Set(keys)
-    while (true) {
-      const key = getDateKey(today)
-      if (!historySet.has(key)) break
-      streak += 1
-      today.setDate(today.getDate() - 1)
-    }
-
-    return { ...habit, streak, total }
+  const handleEditStart = (habit) => {
+      setEditingId(habit.id)
+      setEditData({ title: habit.title, description: habit.description, icon: habit.icon, color: habit.color })
   }
 
-  const updateHabit = (id, updater) => {
-    setHabits((prev) =>
-      prev.map((h) => {
-        if (h.id !== id) return h
-        const updated = updater(h)
-        return recalcStats(updated)
-      }),
-    )
-  }
-
-  const handleToggleDay = (habitId, dateKey) => {
-    updateHabit(habitId, (h) => {
-      const history = { ...(h.history || {}) }
-      if (history[dateKey]) {
-        delete history[dateKey]
-      } else {
-        history[dateKey] = true
-      }
-      return { ...h, history }
-    })
-  }
-
-  const handleCompleteToday = (habitId) => {
-    const todayKey = getDateKey()
-    handleToggleDay(habitId, todayKey)
-  }
-
-  const handleDelete = (habitId) => {
-    setHabits((prev) => prev.filter((h) => h.id !== habitId))
-  }
-
-  const handleAddHabit = () => {
-    if (!name.trim()) return
-    const newHabit = recalcStats({
-      id: 'h' + Date.now(),
-      name: name.trim(),
-      description: description.trim(),
-      color,
-      icon: icon || '✨',
-      history: {},
-      streak: 0,
-      total: 0,
-    })
-    setHabits((prev) => [...prev, newHabit])
-    setName('')
-    setDescription('')
-    setIcon('✨')
-    setColor('pink')
+  const saveEdit = (id) => {
+      if(!editData.title.trim()) return
+      updateHabit(id, editData)
+      setEditingId(null)
   }
 
   return (
-    <div className="habits-page">
-      <Card>
-        <SectionTitle
-          title="Habit tracker"
-          subtitle="Build streaks with HabitKit-style cards."
-        />
-        <div className="habit-add-form">
-          <div className="habit-add-row">
-            <div className="habit-add-field">
-              <label>Name</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. DSA practice"
-              />
-            </div>
-            <div className="habit-add-field">
-              <label>Icon</label>
-              <input
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-                maxLength={2}
-                placeholder="💻"
-              />
-            </div>
-            <div className="habit-add-field">
-              <label>Color</label>
-              <select value={color} onChange={(e) => setColor(e.target.value)}>
-                <option value="pink">Pink</option>
-                <option value="blue">Blue</option>
-                <option value="amber">Amber</option>
-                <option value="green">Green</option>
-              </select>
-            </div>
-          </div>
-          <div className="habit-add-field">
-            <label>Description</label>
-            <input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Short description like 'Solve 3 DSA questions'"
-            />
-          </div>
-          <div style={{ marginTop: 6 }}>
-            <Button variant="primary" onClick={handleAddHabit}>
-              Add habit
-            </Button>
-          </div>
+    <div className="animate-fade-in" style={{ 
+        display: 'grid', gridTemplateColumns: 'minmax(400px, 1.3fr) 1fr', gap: '40px', alignItems: 'start',
+        paddingBottom: '40px'
+    }}>
+        {/* LEFT COLUMN: CREATOR FORM */}
+        <div>
+           <HabitCreator onAdd={addHabit} />
         </div>
-      </Card>
 
-      <div className="habit-list">
-        {habits.length === 0 && (
-          <p className="habit-empty-text">
-            No habits yet. Add one above to get started.
-          </p>
-        )}
+        {/* RIGHT COLUMN: HABIT LIST */}
+        <div className="panel-card" style={{ 
+            background: 'var(--bg-surface)', borderRadius: '24px', padding: '32px',
+            border: '1px solid var(--border-subtle)', minHeight: '600px'
+        }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Flame className="text-accent" /> Your Habits
+            </h2>
 
-        {habits.map((habit) => (
-          <HabitCard
-            key={habit.id}
-            habit={habit}
-            days={days}
-            onToggleDay={handleToggleDay}
-            onCompleteToday={handleCompleteToday}
-            onDelete={handleDelete}
-          />
-        ))}
-      </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {habits.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', border: '2px dashed var(--border-subtle)', borderRadius: '16px' }}>
+                        <p>No habits tracked yet.</p>
+                    </div>
+                )}
+
+                {habits.map(habit => {
+                    const isCompletedToday = !!habit.history[todayKey]
+                    return (
+                        <div key={habit.id} className="animate-fade-in" style={{ 
+                            background: 'var(--bg-panel)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-subtle)'
+                        }}>
+                             {editingId === habit.id ? (
+                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                     <div style={{ display: 'flex', gap: '12px' }}>
+                                         <input 
+                                            value={editData.icon} 
+                                            onChange={e => setEditData({...editData, icon: e.target.value})}
+                                            style={{ width: '50px', fontSize: '1.5rem', textAlign: 'center', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'white' }}
+                                         />
+                                         <div style={{ flex: 1 }}>
+                                             <input 
+                                                value={editData.title} 
+                                                onChange={e => setEditData({...editData, title: e.target.value})}
+                                                placeholder="Habit Name"
+                                                style={{ width: '100%', padding: '8px', marginBottom: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'white', fontWeight: 700 }}
+                                             />
+                                             <input 
+                                                value={editData.description} 
+                                                onChange={e => setEditData({...editData, description: e.target.value})}
+                                                placeholder="Description"
+                                                style={{ width: '100%', padding: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}
+                                             />
+                                         </div>
+                                     </div>
+                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                         <button onClick={() => saveEdit(habit.id)} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: '6px', padding: '6px 12px', color: 'black', fontWeight: 600 }}>Save</button>
+                                         <button onClick={() => setEditingId(null)} style={{ background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '6px', padding: '6px 12px', color: 'white' }}>Cancel</button>
+                                     </div>
+                                 </div>
+                             ) : (
+                                 <>
+                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                         <div style={{ display: 'flex', gap: '12px' }}>
+                                             <div style={{ fontSize: '24px' }}>{habit.icon}</div>
+                                             <div>
+                                                 <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{habit.title}</div>
+                                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{habit.description}</div>
+                                             </div>
+                                         </div>
+                                         <div style={{ display: 'flex', gap: '8px' }}>
+                                             <button onClick={() => handleEditStart(habit)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><Edit2 size={16}/></button>
+                                             <button onClick={() => deleteHabit(habit.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', opacity: 0.5, cursor: 'pointer' }}><Trash2 size={16}/></button>
+                                         </div>
+                                     </div>
+
+                                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                         {days.map(d => {
+                                             const done = habit.history[d.key]
+                                             const isToday = d.key === todayKey
+                                             return (
+                                                 <div key={d.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                                     <div 
+                                                        onClick={() => toggleDay(habit.id, d.key)}
+                                                        style={{ 
+                                                            width: '20px', height: '24px', borderRadius: '4px', cursor: 'pointer',
+                                                            background: done ? (habit.color === 'pink' ? '#ec4899' : habit.color === 'blue' ? '#3b82f6' : '#22c55e') : 'rgba(255,255,255,0.05)',
+                                                            border: isToday ? '1px solid var(--text-muted)' : 'none',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                     />
+                                                     <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{d.label}</span>
+                                                 </div>
+                                             )
+                                         })}
+                                     </div>
+
+                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
+                                         <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Flame size={14} className="text-accent" /> {habit.streak} Day Streak</span>
+                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={14} /> {habit.total} Total</span>
+                                         </div>
+                                         
+                                         <button 
+                                            onClick={() => toggleDay(habit.id, todayKey)}
+                                            className={isCompletedToday ? "btn-secondary" : "btn-primary"}
+                                            style={{ 
+                                                padding: '8px 16px', borderRadius: '10px', fontWeight: 600, fontSize: '0.85rem',
+                                                display: 'flex', alignItems: 'center', gap: '6px',
+                                                background: isCompletedToday ? 'transparent' : 'white',
+                                                color: isCompletedToday ? 'var(--text-secondary)' : 'black',
+                                                border: isCompletedToday ? '1px solid var(--border-subtle)' : 'none'
+                                            }}
+                                         >
+                                             {isCompletedToday ? 'Completed' : 'Check In'}
+                                         </button>
+                                     </div>
+                                 </>
+                             )}
+                        </div>
+                    )
+                })}
+            </div>
+        </div>
     </div>
   )
 }

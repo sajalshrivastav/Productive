@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import Card from '../Components/UI/Card.jsx'
 import SectionTitle from '../Components/UI/SectionTitle.jsx'
 import { useTasks } from '../Context/TaskContext.jsx'
+import CustomSelect from '../Components/UI/CustomSelect.jsx'
 
 const STORAGE_KEY = 'cb-planner-v1'
 
@@ -88,6 +89,11 @@ export default function Productivity() {
     })
   }, [])
 
+  const taskOptions = [
+      { value: '', label: 'No task assigned' },
+      ...todayTasks.map(t => ({ value: t.id, label: t.title }))
+  ]
+
   return (
     <div className="productivity-page">
       {/* Left: Time blocks */}
@@ -101,19 +107,13 @@ export default function Productivity() {
             <div key={block.id} className="planner-row">
               <div className="planner-time">{block.label}</div>
               <div className="planner-select-wrap">
-                <select
-                  value={block.task ? block.task.id : ''}
-                  onChange={(e) =>
-                    handleAssignTask(block.id, e.target.value || null)
-                  }
-                >
-                  <option value="">No task assigned</option>
-                  {todayTasks.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
-                    </option>
-                  ))}
-                </select>
+                  <CustomSelect
+                      value={block.task ? block.task.id : ''}
+                      onChange={(val) => handleAssignTask(block.id, val || null)}
+                      options={taskOptions}
+                      placeholder="Assign task..."
+                      width="100%"
+                  />
               </div>
               <div className="planner-task-preview">
                 {block.task ? (
