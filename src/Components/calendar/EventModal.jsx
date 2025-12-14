@@ -16,6 +16,7 @@ export default function EventModal({
   onClose,
   onCreate,
   defaultDateKey,
+  initialData, // New prop
 }) {
   const [type, setType] = useState('Event') // Event | Task | Appointment
   const [title, setTitle] = useState('')
@@ -30,15 +31,28 @@ export default function EventModal({
   useEffect(() => {
     setDateKey(defaultDateKey || '')
     if (open) {
-      // reset basic fields on open
-      setTitle('')
-      setStartTime('')
-      setDuration('')
-      setNotes('')
-      setColor('#ff7ab6')
-      setReminder('30')
+      if (initialData) {
+        // Edit Mode
+        setTitle(initialData.title || '')
+        setType(initialData.type || 'Event')
+        setDateKey(initialData.dateKey || defaultDateKey || '')
+        setStartTime(initialData.startTime || '')
+        setDuration(initialData.duration || '')
+        setColor(initialData.color || '#ff7ab6')
+        setNotes(initialData.notes || '')
+        setReminder(initialData.reminder || '30')
+      } else {
+        // Create Mode
+        setTitle('')
+        setStartTime('')
+        setDuration('')
+        setNotes('')
+        setColor('#ff7ab6')
+        setReminder('30')
+        setType('Event')
+      }
     }
-  }, [open, defaultDateKey])
+  }, [open, defaultDateKey, initialData])
 
   // close on ESC
   useEffect(() => {
@@ -91,7 +105,7 @@ export default function EventModal({
     >
       <div className="ev-modal" ref={modalRef}>
         <div className="ev-modal-header">
-          <h3>Create a new event</h3>
+          <h3>{initialData ? 'Edit event' : 'Create a new event'}</h3>
           <button
             className="ev-modal-close"
             onClick={onClose}
@@ -206,7 +220,7 @@ export default function EventModal({
 
           <div className="ev-footer">
             <button type="submit" className="ev-btn ev-btn-primary">
-              Create
+              {initialData ? 'Save Changes' : 'Create'}
             </button>
             <button
               type="button"

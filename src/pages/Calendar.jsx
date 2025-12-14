@@ -1,8 +1,10 @@
-// src/Pages/Calendar.jsx
+// src/pages/Calendar.jsx
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { useTasks } from '../Context/TaskContext.jsx'
+import WaveWidget from '../Components/Widgets/WaveWidget.jsx'
 import EventModal from '../Components/calendar/EventModal.jsx'
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-react'
+import ConfirmationModal from '../Components/UI/ConfirmationModal.jsx'
+import { ChevronLeft, ChevronRight, Plus, ChevronDown, Check } from 'lucide-react'
 import '../Styles/Calendar.css'
 
 const EVENT_STORAGE_KEY = 'cb-events-v1'
@@ -14,10 +16,9 @@ function getTodayKey(d = new Date()) {
   return `${y}-${m}-${day}`
 }
 
-// Generate time slots from 6 AM to 11 PM
 function generateTimeSlots() {
   const slots = []
-  for (let hour = 6; hour <= 23; hour++) {
+  for (let hour = 0; hour <= 23; hour++) {
     slots.push({
       hour,
       label: `${hour === 12 ? 12 : hour > 12 ? hour - 12 : hour} ${hour >= 12 ? 'PM' : 'AM'}`,
@@ -27,7 +28,6 @@ function generateTimeSlots() {
   return slots
 }
 
-// Get the week days starting from a given date
 function getWeekDays(startDate) {
   const days = []
   for (let i = 0; i < 7; i++) {
@@ -38,10 +38,6 @@ function getWeekDays(startDate) {
       key: getTodayKey(date),
       dayNumber: date.getDate(),
       weekday: date.toLocaleDateString(undefined, { weekday: 'short' }),
-      monthDay: date.toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-      }),
       isToday: getTodayKey(date) === getTodayKey(),
     })
   }
@@ -53,36 +49,36 @@ function loadEvents() {
     const raw = localStorage.getItem(EVENT_STORAGE_KEY)
     return raw ? JSON.parse(raw) : []
   } catch (e) {
-    console.error('Failed to load events', e)
     return []
   }
+}
+
+const dispatchUpdate = () => {
+  window.dispatchEvent(new Event('cb-events-updated'))
 }
 
 function saveEvents(events) {
   try {
     localStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(events))
+    dispatchUpdate()
   } catch (e) {
     console.error('Failed to save events', e)
   }
 }
 
-// Parse time string to get hour and minute
 function parseTime(timeStr) {
   if (!timeStr) return null
   const [hour, minute] = timeStr.split(':').map(Number)
   return { hour, minute }
 }
 
-// Calculate event position and height
 function calculateEventPosition(startTime, duration) {
   const parsed = parseTime(startTime)
   if (!parsed) return null
-
   const startMinutes = parsed.hour * 60 + parsed.minute
-  const baseMinutes = 6 * 60 // 6 AM start
+  const top = (startMinutes / 60) * 80
 
-  // Parse duration (e.g., "60m", "1.5h", "90")
-  let durationMinutes = 60 // default
+  let durationMinutes = 60
   if (duration) {
     const match = duration.match(/(\d+\.?\d*)\s*(m|h)?/)
     if (match) {
@@ -91,569 +87,377 @@ function calculateEventPosition(startTime, duration) {
       durationMinutes = unit === 'h' ? value * 60 : value
     }
   }
-
-  const top = ((startMinutes - baseMinutes) / 60) * 80 // 80px per hour
   const height = (durationMinutes / 60) * 80
-
   return { top, height }
 }
 
-// Month View Component
-function MonthView({ events, eventsByDate, onAddEvent, onDeleteEvent }) {
+// --- WIDGETS ---
+
+function MiniCalendarWidget({ selectedDateKey, onSelectDate }) {
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth()
+  const monthLabel = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+  const days = useMemo(() => {
+    const firstDayOfMonth = new Date(year, month, 1)
+    const startingDay = firstDayOfMonth.getDay()
+    const startOffset = startingDay === 0 ? 6 : startingDay - 1
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+    const prevMonthDays = []
+    const prevMonthLastDate = new Date(year, month, 0).getDate()
+    for (let i = 0; i < startOffset; i++) {
+      prevMonthDays.unshift({ day: prevMonthLastDate - i, other: true })
+    }
+
+    const currentDays = []
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(year, month, i)
+      currentDays.push({ day: i, key: getTodayKey(d), other: false })
+    }
+
+    const totalSlots = 42
+    const nextMonthDays = []
+    for (let i = 1; i <= totalSlots - (prevMonthDays.length + currentDays.length); i++) {
+      nextMonthDays.push({ day: i, other: true })
+    }
+    return [...prevMonthDays, ...currentDays, ...nextMonthDays]
+  }, [year, month])
+
+  return (
+    <div className="mini-calendar-widget">
+      <div className="mini-cal-header">
+        <h3 className="mini-cal-title">{monthLabel}</h3>
+        <div className="mini-cal-nav">
+          <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="mini-cal-btn"><ChevronLeft size={16} /></button>
+          <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="mini-cal-btn"><ChevronRight size={16} /></button>
+        </div>
+      </div>
+      <div className="mini-cal-grid">
+        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(d => <div key={d} className="mini-cal-day-label">{d}</div>)}
+        {days.map((d, i) => (
+          <div key={i} className={`mini-cal-day ${d.other ? 'other-month' : ''} ${d.key === getTodayKey() ? 'today' : ''}`}
+            onClick={() => d.key && onSelectDate(d.key)}>
+            {d.day}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function UpcomingEventsWidget({ events }) {
+  const upcoming = useMemo(() => {
+    const today = getTodayKey()
+    return events.filter(e => e.dateKey >= today)
+      .sort((a, b) => (a.dateKey + a.startTime).localeCompare(b.dateKey + b.startTime)).slice(0, 4)
+  }, [events])
+
+  return (
+    <div className="upcoming-widget">
+      <div className="widget-header">
+        <h3 className="widget-title">Upcoming events today</h3>
+        <span className="view-all-link">View all</span>
+      </div>
+      <div className="upcoming-list">
+        {upcoming.length === 0 && <p style={{ color: '#666', fontSize: '0.85rem' }}>No upcoming events</p>}
+        {upcoming.map(e => (
+          <div key={e.id} className="upcoming-item">
+            <div className={`upcoming-checkbox ${false ? 'checked' : ''}`} />
+            <div className="upcoming-info">
+              <span className="upcoming-name">{e.title}</span>
+              <span className="upcoming-time">{e.startTime} - {parseInt(e.startTime) + 1}:00</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
+
+// --- SUB VIEWS ---
+
+function MonthView({ events, eventsByDate, onAddEvent }) {
   const today = new Date()
   const [month, setMonth] = useState(today.getMonth())
   const [year, setYear] = useState(today.getFullYear())
-  const [selectedDate, setSelectedDate] = useState(getTodayKey())
-
   const monthDays = useMemo(() => {
     const first = new Date(year, month, 1)
-    const firstWeekday = first.getDay() // 0 (Sun) - 6 (Sat)
-    
-    // Adjust for Monday start if needed? The UI shows Mon-Sun.
-    // If headers are Mon-Sun, then Sun should be 7? 
-    // Wait, standard JS getDay() is Sun=0.
-    // The rendered headers are Mon, Tue, Wed...
-    // So logic: Mon=1, Tue=2... Sun=7.
-    // Normalized start: (firstWeekday + 6) % 7 + 1?
-    // Let's assume standard grid (Col 1 = Mon)
-    // JS: Sun=0, Mon=1...
-    // If Mon is col 1, then Mon(1) -> 1.
-    // Sun(0) -> 7.
-    // Helper: const getGridCol = (d) => d === 0 ? 7 : d;
-    
+    const firstWeekday = first.getDay()
     const getGridCol = (d) => d === 0 ? 7 : d
     const startCol = getGridCol(firstWeekday)
-
     const daysInMonth = new Date(year, month + 1, 0).getDate()
     const days = []
-
-    // Current month days only
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(year, month, d)
       const key = getTodayKey(date)
-      days.push({
-        date,
-        key,
-        dayNumber: d,
-        isToday: key === getTodayKey(),
-        isOtherMonth: false,
-        // Only set startCol for the very first day
-        style: d === 1 ? { gridColumnStart: startCol } : {}
-      })
+      days.push({ date, key, dayNumber: d, isToday: key === getTodayKey(), style: d === 1 ? { gridColumnStart: startCol } : {} })
     }
-
     return days
   }, [year, month])
 
-  const monthLabel = useMemo(
-    () =>
-      new Date(year, month, 1).toLocaleDateString(undefined, {
-        month: 'long',
-        year: 'numeric',
-      }),
-    [year, month],
-  )
-
-  // Get upcoming events (sorted by date and time)
-  const upcomingEvents = useMemo(() => {
-    const now = new Date()
-    const todayKey = getTodayKey()
-
-    return events
-      .filter((e) => e.dateKey >= todayKey)
-      .sort((a, b) => {
-        if (a.dateKey !== b.dateKey) return a.dateKey.localeCompare(b.dateKey)
-        if (a.startTime && b.startTime)
-          return a.startTime.localeCompare(b.startTime)
-        return 0
-      })
-      .slice(0, 10) // Show next 10 events
-  }, [events])
-
-  const handlePrev = () => {
-    if (month === 0) {
-      setMonth(11)
-      setYear(year - 1)
-    } else {
-      setMonth(month - 1)
-    }
-  }
-
-  const handleNext = () => {
-    if (month === 11) {
-      setMonth(0)
-      setYear(year + 1)
-    } else {
-      setMonth(month + 1)
-    }
-  }
-
-  const handleDayClick = (day) => {
-    setSelectedDate(day.key)
-    onAddEvent(day.key)
-  }
-
   return (
     <div className="calendar-month-split-view">
-      {/* Left: Compact Calendar */}
-      <div className="month-calendar-panel">
+      <div className="month-calendar-panel" style={{ flex: 1 }}>
         <div className="month-calendar-header">
-          <button className="month-nav-btn" onClick={handlePrev}>
-            <ChevronLeft size={20} />
-          </button>
-          <h2 className="month-calendar-title">{monthLabel}</h2>
-          <button className="month-nav-btn" onClick={handleNext}>
-            <ChevronRight size={20} />
-          </button>
+          <button className="month-nav-btn" onClick={() => setMonth(m => m - 1)}><ChevronLeft size={20} /></button>
+          <h2 className="month-calendar-title">{new Date(year, month, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2>
+          <button className="month-nav-btn" onClick={() => setMonth(m => m + 1)}><ChevronRight size={20} /></button>
         </div>
-
         <div className="month-calendar-grid">
-          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-            <div key={day} className="month-calendar-weekday">
-              {day}
-            </div>
-          ))}
-
+          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => <div key={day} className="month-calendar-weekday">{day}</div>)}
           {monthDays.map((day, idx) => {
             const dayEvents = eventsByDate.get(day.key) || []
-            const hasEvents = dayEvents.length > 0
-
             return (
-              <button
-                key={`${day.key}-${idx}`}
-                className={`month-calendar-day ${day.isToday ? 'today' : ''} ${
-                  selectedDate === day.key ? 'selected' : ''
-                } ${hasEvents ? 'has-events' : ''}`}
-                onClick={() => handleDayClick(day)}
-                style={day.style}
-              >
+              <button key={idx} className={`month-calendar-day ${day.isToday ? 'today' : ''}`}
+                onClick={() => onAddEvent(day.key)} style={day.style}>
                 <span className="day-num">{day.dayNumber}</span>
-                {hasEvents && (
-                  <div className="day-event-dots">
-                    {dayEvents.slice(0, 3).map((event, i) => (
-                      <span
-                        key={event.id}
-                        className="event-dot"
-                        style={{ background: event.color }}
-                      />
-                    ))}
-                  </div>
-                )}
+                <div className="day-event-dots">
+                  {dayEvents.slice(0, 3).map((e, i) => <span key={i} className="event-dot" style={{ background: e.color }} />)}
+                </div>
               </button>
             )
-
           })}
-        </div>
-      </div>
-
-      {/* Right: Upcoming Events */}
-      <div className="month-events-panel">
-        <div className="month-events-header">
-          <h3 className="month-events-title">Upcoming Events</h3>
-          <button className="month-add-event-btn" onClick={() => onAddEvent(getTodayKey())}>
-            <Plus size={18} />
-            Add Event
-          </button>
-        </div>
-
-        <div className="month-events-list">
-          {upcomingEvents.length === 0 ? (
-            <div className="month-events-empty">
-              <CalendarIcon size={48} opacity={0.3} />
-              <p>No upcoming events</p>
-              <span>Click on any date to add an event</span>
-            </div>
-          ) : (
-            upcomingEvents.map((event) => {
-              const eventDate = new Date(event.dateKey)
-              const dateLabel = eventDate.toLocaleDateString(undefined, {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-              })
-
-              return (
-                <div key={event.id} className="month-event-card">
-                  <div
-                    className="month-event-color-bar"
-                    style={{ background: event.color }}
-                  />
-                  <div className="month-event-content">
-                    <div className="month-event-header-row">
-                      <h4 className="month-event-card-title">{event.title}</h4>
-                      <button
-                        className="month-event-card-delete"
-                        onClick={() => onDeleteEvent(event.id)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="month-event-meta">
-                      <span className="month-event-date">{dateLabel}</span>
-                      {event.startTime && (
-                        <>
-                          <span className="month-event-separator">•</span>
-                          <span className="month-event-time">
-                            {event.startTime}
-                            {event.duration && ` (${event.duration})`}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    {event.notes && (
-                      <p className="month-event-notes">{event.notes}</p>
-                    )}
-                  </div>
-                </div>
-              )
-            })
-          )}
         </div>
       </div>
     </div>
   )
 }
 
+function DayView({ date, events, onAddEvent, onDeleteEvent, onEditEvent }) {
+  const timeSlots = useMemo(() => generateTimeSlots(), [])
+  const dateKey = getTodayKey(date)
+  const dayEvents = events.filter(e => e.dateKey === dateKey)
+  const gridRef = useRef(null)
+  useEffect(() => { if (gridRef.current) gridRef.current.scrollTop = 640 }, [])
+
+  return (
+    <div className="calendar-week-view">
+      <div className="calendar-day-headers" style={{ gridTemplateColumns: '80px 1fr' }}>
+        <div className="gmt-label">GMT +5</div>
+        <div className="calendar-day-header-cell">
+          <div className={`calendar-day-pill ${dateKey === getTodayKey() ? 'today' : ''}`}>
+            <span className="day-weekday">{date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+            <span className="day-number">{date.getDate()}</span>
+          </div>
+        </div>
+      </div>
+      <div className="calendar-grid-container" style={{ gridTemplateColumns: '80px 1fr' }} ref={gridRef}>
+        <div className="calendar-time-column" style={{ gridRow: '1 / -1', gridColumn: 1 }}>
+          {timeSlots.map(slot => <div key={slot.hour} className="calendar-time-slot"><span className="time-label">{slot.label}</span></div>)}
+        </div>
+        <div className="calendar-grid-lines" style={{ gridRow: '1 / -1', gridColumn: '2 / -1' }}>
+          {timeSlots.map(slot => <div key={slot.hour} className="grid-hour-line" />)}
+        </div>
+        <div className="calendar-day-column" style={{ gridColumn: 2, gridRow: '1 / -1' }} onClick={() => onAddEvent(dateKey)}>
+          {dayEvents.map(event => {
+            const pos = calculateEventPosition(event.startTime, event.duration)
+            if (!pos) return null
+            return (
+              <div key={event.id} className="calendar-event-card"
+                style={{ top: `${pos.top}px`, height: `${Math.max(pos.height, 40)}px`, borderLeft: `3px solid ${event.color}`, left: '10px', right: '10px' }}
+                onClick={(e) => { e.stopPropagation(); onEditEvent(event) }}>
+                <div className="event-card-content">
+                  <div className="event-card-title">{event.title}</div>
+                  <div className="event-card-time">{event.startTime}</div>
+                </div>
+                <button className="event-card-delete" onClick={(e) => { e.stopPropagation(); onDeleteEvent(event.id) }}>×</button>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// --- MAIN COMPONENT ---
+
 export default function CalendarPage() {
   const { addTask } = useTasks()
-  const [viewMode, setViewMode] = useState('week') // 'week' or 'month'
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
-    const d = new Date()
+  const [viewMode, setViewMode] = useState('week')
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const currentWeekStart = useMemo(() => {
+    const d = new Date(currentDate)
     const day = d.getDay()
-    const diff = d.getDate() - day
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
     return new Date(d.setDate(diff))
-  })
+  }, [currentDate])
+
   const [events, setEvents] = useState(() => loadEvents())
-  const [showEventModal, setShowEventModal] = useState(false)
-  const [modalDefaultDate, setModalDefaultDate] = useState(getTodayKey())
-  const gridContainerRef = useRef(null)
+  const [showModal, setShowModal] = useState(false)
+  const [modalDate, setModalDate] = useState(getTodayKey())
+  const [editingEvent, setEditingEvent] = useState(null)
 
-  // load events on mount (keeps current state if already set)
-  useEffect(() => {
-    setEvents(loadEvents())
-  }, [])
+  // Custom Confirmation Modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState(null)
 
-  // persist events when changed
-  useEffect(() => {
-    saveEvents(events)
-  }, [events])
+  useEffect(() => { setEvents(loadEvents()) }, [])
+  useEffect(() => { saveEvents(events) }, [events])
 
+  const handleSaveEvent = (payload) => {
+    if (!payload.title || !payload.dateKey) return
+    if (editingEvent) {
+      setEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, ...payload } : e))
+    } else {
+      const e = { id: 'ev' + Date.now().toString(36), ...payload, createdAt: new Date().toISOString() }
+      setEvents(prev => [...prev, e])
+      if (payload.type === 'Task') addTask({ title: payload.title, type: 'event', sourceId: 'ev-sync', dateKey: payload.dateKey, notes: payload.notes || '' })
+    }
+    setShowModal(false); setEditingEvent(null)
+  }
+
+  // Called when clicking the X button
+  const handleDeleteRequest = (id) => {
+    setItemToDelete(id)
+    setShowDeleteModal(true)
+  }
+
+  // Called by ConfirmationModal
+  const confirmDelete = () => {
+    if (itemToDelete) {
+      setEvents((prev) => prev.filter((e) => e.id !== itemToDelete))
+      setItemToDelete(null)
+    }
+  }
+
+  const openAddModal = (dateKey) => { setEditingEvent(null); setModalDate(dateKey); setShowModal(true) }
+  const openEditModal = (event) => { setEditingEvent(event); setModalDate(event.dateKey); setShowModal(true) }
+
+  const handlePrev = () => {
+    const newDate = new Date(currentDate)
+    if (viewMode === 'week') newDate.setDate(newDate.getDate() - 7)
+    if (viewMode === 'day') newDate.setDate(newDate.getDate() - 1)
+    if (viewMode === 'month') newDate.setMonth(newDate.getMonth() - 1)
+    setCurrentDate(newDate)
+  }
+  const handleNext = () => {
+    const newDate = new Date(currentDate)
+    if (viewMode === 'week') newDate.setDate(newDate.getDate() + 7)
+    if (viewMode === 'day') newDate.setDate(newDate.getDate() + 1)
+    if (viewMode === 'month') newDate.setMonth(newDate.getMonth() + 1)
+    setCurrentDate(newDate)
+  }
+
+  const weekDays = useMemo(() => getWeekDays(currentWeekStart), [currentWeekStart])
+  const timeSlots = useMemo(() => generateTimeSlots(), [])
   const eventsByDate = useMemo(() => {
     const map = new Map()
-    events.forEach((e) => {
-      if (!map.has(e.dateKey)) map.set(e.dateKey, [])
-      map.get(e.dateKey).push(e)
-    })
-    // sort events by startTime if present
-    for (const arr of map.values()) {
-      arr.sort((a, b) => {
-        if (a.startTime && b.startTime)
-          return a.startTime.localeCompare(b.startTime)
-        return 0
-      })
-    }
+    events.forEach((e) => { if (!map.has(e.dateKey)) map.set(e.dateKey, []); map.get(e.dateKey).push(e) })
     return map
   }, [events])
 
-  // create / update events
-  const createEvent = ({
-    title,
-    dateKey,
-    startTime = '',
-    duration = '',
-    color = '#ff7ab6',
-    notes = '',
-  }) => {
-    if (!title || !dateKey) return
-    const e = {
-      id: 'ev' + Date.now().toString(36),
-      title,
-      dateKey,
-      startTime,
-      duration,
-      color,
-      notes,
-      createdAt: new Date().toISOString(),
-    }
-    setEvents((prev) => [e, ...prev])
-  }
-
-  const deleteEvent = (id) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id))
-  }
-
-  const weekDays = useMemo(
-    () => getWeekDays(currentWeekStart),
-    [currentWeekStart],
-  )
-  const timeSlots = useMemo(() => generateTimeSlots(), [])
-
-  const handlePrevWeek = () => {
-    setCurrentWeekStart((prev) => {
-      const newDate = new Date(prev)
-      newDate.setDate(prev.getDate() - 7)
-      return newDate
-    })
-  }
-
-  const handleNextWeek = () => {
-    setCurrentWeekStart((prev) => {
-      const newDate = new Date(prev)
-      newDate.setDate(prev.getDate() + 7)
-      return newDate
-    })
-  }
-
-  const handleToday = () => {
-    const d = new Date()
-    const day = d.getDay()
-    const diff = d.getDate() - day
-    setCurrentWeekStart(new Date(d.setDate(diff)))
-  }
-
-  const weekLabel = useMemo(() => {
-    const start = weekDays[0]?.date
-    const end = weekDays[6]?.date
-    if (!start || !end) return ''
-
-    const startMonth = start.toLocaleDateString(undefined, { month: 'short' })
-    const endMonth = end.toLocaleDateString(undefined, { month: 'short' })
-    const year = start.getFullYear()
-
-    if (startMonth === endMonth) {
-      return `${startMonth} ${start.getDate()} - ${end.getDate()}, ${year}`
-    }
-    return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}, ${year}`
-  }, [weekDays])
-
-  const handleAddEvent = (dateKey) => {
-    setModalDefaultDate(dateKey)
-    setShowEventModal(true)
-  }
-
-  // Get current time indicator position - updates every minute
-  const [currentTimePosition, setCurrentTimePosition] = useState(() => {
+  const gridContainerRef = useRef(null)
+  const [currentTimePosition, setCurrentTimePosition] = useState(null)
+  useEffect(() => {
     const now = new Date()
     const hours = now.getHours()
-    const minutes = now.getMinutes()
-    if (hours < 6 || hours > 23) return null
-
-    const totalMinutes = hours * 60 + minutes
-    const baseMinutes = 6 * 60
-    return ((totalMinutes - baseMinutes) / 60) * 80
-  })
-
-  // Update time indicator every minute
-  useEffect(() => {
-    const updateTimeIndicator = () => {
-      const now = new Date()
-      const hours = now.getHours()
-      const minutes = now.getMinutes()
-      if (hours < 6 || hours > 23) {
-        setCurrentTimePosition(null)
-        return
+    if (hours >= 0 && hours <= 23) {
+      const mins = hours * 60 + now.getMinutes()
+      const pos = ((mins - 0) / 60) * 80
+      setCurrentTimePosition(pos)
+      if (gridContainerRef.current) {
+        requestAnimationFrame(() => {
+          gridContainerRef.current.scrollTop = Math.max(0, pos - 200)
+        })
       }
-
-      const totalMinutes = hours * 60 + minutes
-      const baseMinutes = 6 * 60
-      setCurrentTimePosition(((totalMinutes - baseMinutes) / 60) * 80)
     }
-
-    const interval = setInterval(updateTimeIndicator, 60000) // Update every minute
-    return () => clearInterval(interval)
   }, [])
-
-  // Auto-scroll to current time on mount
-  useEffect(() => {
-    if (gridContainerRef.current && currentTimePosition !== null) {
-      const scrollContainer = gridContainerRef.current.parentElement
-      if (scrollContainer) {
-        // Scroll to current time minus some offset to center it
-        const scrollTo = Math.max(0, currentTimePosition - 200)
-        scrollContainer.scrollTop = scrollTo
-      }
-    }
-  }, [currentTimePosition])
 
   return (
     <div className="calendar-page-new">
-      {/* Header */}
-      <div className="calendar-header-new">
-        <div className="calendar-header-left">
-          <h1 className="calendar-title">Calendar</h1>
-          <div className="calendar-nav-controls">
-            <button className="cal-nav-btn-new" onClick={handlePrevWeek}>
-              <ChevronLeft size={18} />
-            </button>
-            <button className="cal-today-btn" onClick={handleToday}>
-              Today
-            </button>
-            <button className="cal-nav-btn-new" onClick={handleNextWeek}>
-              <ChevronRight size={18} />
-            </button>
-            <span className="calendar-week-label">{weekLabel}</span>
-          </div>
-        </div>
-        <div className="calendar-header-actions">
-          <button
-            className={`cal-view-toggle ${viewMode === 'week' ? 'active' : ''}`}
-            onClick={() => setViewMode('week')}
-          >
-            Week
-          </button>
-          <button
-            className={`cal-view-toggle ${viewMode === 'month' ? 'active' : ''}`}
-            onClick={() => setViewMode('month')}
-          >
-            <CalendarIcon size={16} />
-            Month
-          </button>
-          <button
-            className="cal-add-btn"
-            onClick={() => handleAddEvent(getTodayKey())}
-          >
-            <Plus size={18} />
-            Add Event
-          </button>
-        </div>
-      </div>
 
-      {/* Conditional View */}
-      {viewMode === 'month' ? (
-        <MonthView
-          events={events}
-          eventsByDate={eventsByDate}
-          onAddEvent={handleAddEvent}
-          onDeleteEvent={deleteEvent}
-        />
-      ) : (
-        <div className="calendar-week-view">
-        {/* Time column */}
-        <div className="calendar-time-column">
-          <div className="calendar-time-header">GMT +07</div>
-          {timeSlots.map((slot) => (
-            <div key={slot.hour} className="calendar-time-slot">
-              <span className="time-label">{slot.label}</span>
+      <div style={{ display: 'flex', gap: '24px', flex: 1, minHeight: 0 }}>
+        <div className="calendar-sidebar">
+          <MiniCalendarWidget selectedDateKey={getTodayKey(currentDate)} onSelectDate={(key) => setCurrentDate(new Date(key))} />
+          <UpcomingEventsWidget events={events} />
+        </div>
+
+        <div className="calendar-main" style={{ flex: 1 }}>
+          <div className="calendar-main-header">
+            <h2 className="main-month-title">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2>
+            <div className="calendar-nav-controls">
+              <button className="cal-nav-btn-new" onClick={handlePrev}><ChevronLeft size={18} /></button>
+              <button className="cal-today-btn" onClick={() => setCurrentDate(new Date())}>Today</button>
+              <button className="cal-nav-btn-new" onClick={handleNext}><ChevronRight size={18} /></button>
             </div>
-          ))}
-        </div>
+            <div className="calendar-header-actions">
+              <div className="main-view-toggles">
+                <button className={`view-toggle-btn ${viewMode === 'month' ? 'active' : ''}`} onClick={() => setViewMode('month')}>Month</button>
+                <button className={`view-toggle-btn ${viewMode === 'week' ? 'active' : ''}`} onClick={() => setViewMode('week')}>Week</button>
+                <button className={`view-toggle-btn ${viewMode === 'day' ? 'active' : ''}`} onClick={() => setViewMode('day')}>Day</button>
+              </div>
+              <button className="cal-add-btn" onClick={() => openAddModal(getTodayKey(currentDate))}><Plus size={18} /> Add Event</button>
+            </div>
+          </div>
 
-        {/* Days columns */}
-        <div className="calendar-days-grid">
-          {/* Day headers */}
-          <div className="calendar-day-headers">
-            {weekDays.map((day) => (
-              <div
-                key={day.key}
-                className={`calendar-day-header ${day.isToday ? 'today' : ''}`}
-              >
-                <div className="day-weekday">{day.weekday}</div>
-                <div className={`day-number ${day.isToday ? 'today' : ''}`}>
-                  {day.dayNumber}
+          {viewMode === 'month' && <MonthView events={events} eventsByDate={eventsByDate} onAddEvent={openAddModal} />}
+          {viewMode === 'day' && <DayView date={currentDate} events={events} onAddEvent={openAddModal} onDeleteEvent={handleDeleteRequest} onEditEvent={openEditModal} />}
+
+          {viewMode === 'week' && (
+            <div className="calendar-week-view" style={{ borderRadius: 0, border: 'none', boxShadow: 'none' }}>
+              <div className="calendar-day-headers" style={{ gridTemplateColumns: '80px repeat(7, 1fr)' }}>
+                <div className="gmt-label">GMT +5</div>
+                {weekDays.map((day) => (
+                  <div key={day.key} className="calendar-day-header-cell">
+                    <div className={`calendar-day-pill ${day.isToday ? 'today' : ''}`}>
+                      <span className="day-weekday">{day.weekday}</span>
+                      <span className="day-number">{day.dayNumber}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="calendar-grid-container" style={{ gridTemplateColumns: '80px repeat(7, 1fr)' }} ref={gridContainerRef}>
+                <div className="calendar-time-column" style={{ gridRow: '1 / -1', gridColumn: 1 }}>
+                  {timeSlots.map(slot => <div key={slot.hour} className="calendar-time-slot"><span className="time-label">{slot.label}</span></div>)}
                 </div>
-              </div>
-            ))}
-          </div>
+                <div className="calendar-grid-lines" style={{ gridRow: '1 / -1', gridColumn: '2 / -1' }}>
+                  {timeSlots.map(slot => <div key={slot.hour} className="grid-hour-line" />)}
+                </div>
+                {currentTimePosition !== null && <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}><div className="time-indicator-dot" /><div className="time-indicator-line" /></div>}
 
-          {/* Grid lines and events */}
-          <div className="calendar-grid-container" ref={gridContainerRef}>
-            {/* Background grid */}
-            <div className="calendar-grid-lines">
-              {timeSlots.map((slot) => (
-                <div key={slot.hour} className="grid-hour-line" />
-              ))}
-            </div>
-
-            {/* Current time indicator */}
-            {currentTimePosition !== null && (
-              <div
-                className="current-time-indicator"
-                style={{ top: `${currentTimePosition}px` }}
-              >
-                <div className="time-indicator-dot" />
-                <div className="time-indicator-line" />
-              </div>
-            )}
-
-            {/* Day columns with events */}
-            {weekDays.map((day) => {
-              const dayEvents = (eventsByDate.get(day.key) || []).filter(
-                (e) => e.startTime,
-              )
-
-              return (
-                <div
-                  key={day.key}
-                  className="calendar-day-column"
-                  onClick={() => handleAddEvent(day.key)}
-                >
-                  {dayEvents.map((event) => {
-                    const position = calculateEventPosition(
-                      event.startTime,
-                      event.duration,
-                    )
-                    if (!position) return null
-
-                    return (
-                      <div
-                        key={event.id}
-                        className="calendar-event-card"
-                        style={{
-                          top: `${position.top}px`,
-                          height: `${Math.max(position.height, 40)}px`,
-                          borderLeft: `3px solid ${event.color}`,
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                        }}
-                      >
-                        <div className="event-card-content">
-                          <div className="event-card-title">{event.title}</div>
-                          <div className="event-card-time">
-                            {event.startTime}
-                            {event.duration && ` • ${event.duration}`}
+                {weekDays.map((day, idx) => {
+                  const dayEvents = (eventsByDate.get(day.key) || []).filter(e => e.startTime)
+                  return (
+                    <div key={day.key} className="calendar-day-column" style={{ gridColumn: idx + 2, gridRow: '1 / -1' }} onClick={() => openAddModal(day.key)}>
+                      {dayEvents.map(event => {
+                        const pos = calculateEventPosition(event.startTime, event.duration)
+                        if (!pos) return null
+                        return (
+                          <div key={event.id} className="calendar-event-card"
+                            style={{ top: `${pos.top}px`, height: `${Math.max(pos.height, 40)}px`, borderLeft: `3px solid ${event.color}` }}
+                            onClick={(e) => { e.stopPropagation(); openEditModal(event) }}>
+                            <div className="event-card-content">
+                              <div className="event-card-title">{event.title}</div>
+                              <div className="event-card-time">{event.startTime}</div>
+                            </div>
+                            <button className="event-card-delete" onClick={(e) => { e.stopPropagation(); handleDeleteRequest(event.id) }}>×</button>
                           </div>
-                          {event.notes && (
-                            <div className="event-card-notes">{event.notes}</div>
-                          )}
-                        </div>
-                        <button
-                          className="event-card-delete"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            deleteEvent(event.id)
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )
-            })}
-          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      )}
+      <EventModal open={showModal} onClose={() => setShowModal(false)} defaultDateKey={modalDate} initialData={editingEvent} onCreate={handleSaveEvent} />
 
-      {/* Event Modal */}
-      <EventModal
-        open={showEventModal}
-        onClose={() => setShowEventModal(false)}
-        defaultDateKey={modalDefaultDate}
-        onCreate={(payload) => {
-          createEvent(payload)
-          if (payload.type === 'Task') {
-            addTask({
-              title: payload.title,
-              type: 'event',
-              sourceId: 'ev-sync',
-              dateKey: payload.dateKey,
-              notes: payload.notes || '',
-            })
-          }
-        }}
+      <ConfirmationModal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Event?"
+        message="Are you sure you want to delete this event? This action cannot be undone."
+        confirmText="Delete"
+        type="danger"
       />
     </div>
   )

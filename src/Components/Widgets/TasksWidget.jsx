@@ -5,10 +5,10 @@ import { useTasks } from '../../Context/TaskContext.jsx'
 
 export default function TasksWidget() {
     const { tasks, toggleTask } = useTasks()
-    
+
     // Filter for today's tasks or priority tasks
     // For this UI, we just take the first 3 active or completed
-    const displayTasks = tasks.slice(0, 3) 
+    const displayTasks = tasks.slice(0, 3)
     const doneCount = tasks.filter(t => t.done).length
     const totalCount = tasks.length
 
@@ -25,8 +25,8 @@ export default function TasksWidget() {
                 </div>
 
                 <div className="wigggle-task-list" style={{ flex: 1 }}>
-                    {displayTasks.map(task => (
-                        <div key={task.id} className="wigggle-task-item" onClick={() => toggleTask(task.id)}>
+                    {displayTasks.map((task, i) => (
+                        <div key={task.id || i} className="wigggle-task-item" onClick={() => toggleTask(task.id)}>
                             <div className={`wigggle-task-check ${task.done ? 'checked' : ''}`}>
                                 {task.done && <Check size={14} strokeWidth={3} />}
                             </div>
@@ -35,7 +35,7 @@ export default function TasksWidget() {
                                     {task.title}
                                 </span>
                                 {/* Mock time for UI matching */}
-                                <span className="wigggle-task-time">9:00 AM to 9:30 AM</span> 
+                                <span className="wigggle-task-time">9:00 AM to 9:30 AM</span>
                             </div>
                         </div>
                     ))}

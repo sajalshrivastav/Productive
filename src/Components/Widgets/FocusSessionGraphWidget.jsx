@@ -13,7 +13,7 @@ export default function FocusSessionGraphWidget() {
     // Calculate Totals for Legend
     const totalFocusMins = daySessions.filter(s => s.type === 'focus').reduce((acc, s) => acc + (s.duration / 60), 0)
     const totalBreakMins = daySessions.filter(s => s.type === 'break').reduce((acc, s) => acc + (s.duration / 60), 0)
-    
+
     // Format Minutes to "1h 20m" or "45m"
     const formatTime = (mins) => {
         if (mins === 0) return '0m'
@@ -32,7 +32,7 @@ export default function FocusSessionGraphWidget() {
         justifyContent: 'space-between',
         alignItems: 'center',
         gap: '20px',
-        maxWidth: '320px', // Restrict width
+        width: '100%',
         minHeight: '160px',
         position: 'relative',
         overflow: 'hidden'
@@ -44,7 +44,7 @@ export default function FocusSessionGraphWidget() {
     const breakRatio = totalMins > 0 ? totalBreakMins / totalMins : 0.5
 
     // Scale sizes (min 60px, max 110px)
-    const baseSize = 180 
+    const baseSize = 180
     const focusSize = Math.max(70, Math.min(120, baseSize * focusRatio))
     const breakSize = Math.max(60, Math.min(100, baseSize * breakRatio))
 
@@ -53,7 +53,7 @@ export default function FocusSessionGraphWidget() {
             {/* LEFT COLUMN: Info */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', zIndex: 10 }}>
                 <h3 style={{ fontSize: '0.95rem', color: '#a1a1aa', fontWeight: 500, margin: 0 }}>Daily Focus</h3>
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {/* Focus Legend: Time - Name */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -66,13 +66,13 @@ export default function FocusSessionGraphWidget() {
                         </div>
                     </div>
                     {/* Break Legend: Time - Name */}
-                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#a8a29e' }} />
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                             <span style={{ color: '#fff', fontWeight: 600, fontSize: '1rem' }}>
                                 {formatTime(totalBreakMins)}
                             </span>
-                             <span style={{ color: '#a1a1aa', fontSize: '0.85rem' }}>Break</span>
+                            <span style={{ color: '#a1a1aa', fontSize: '0.85rem' }}>Break</span>
                         </div>
                     </div>
                 </div>
@@ -98,7 +98,7 @@ export default function FocusSessionGraphWidget() {
                     zIndex: 5,
                     fontSize: '0.8rem'
                 }}>
-                    ~{ Math.round(totalBreakMins / 60) }h
+                    ~{Math.round(totalBreakMins / 60)}h
                 </div>
 
                 {/* Focus Bubble (Foreground) */}
@@ -119,7 +119,7 @@ export default function FocusSessionGraphWidget() {
                     fontSize: '0.9rem',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                 }}>
-                    ~{ Math.round(totalFocusMins / 60) }h
+                    ~{Math.round(totalFocusMins / 60)}h
                 </div>
             </div>
         </div>
