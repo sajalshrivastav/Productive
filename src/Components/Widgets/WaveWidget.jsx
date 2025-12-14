@@ -72,7 +72,7 @@ export default function WaveWidget() {
                         </linearGradient>
                     </defs>
                     <path d={pathData.fill} fill="url(#waveGradient)" />
-                    <path d={pathData.stroke} fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d={pathData.stroke} fill="none" stroke="#22c55e" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
             </div>
 

@@ -41,12 +41,12 @@ export default function Button({
   const combinedStyle = { ...baseStyle, ...variants[variant] }
 
   return (
-    <button style={combinedStyle} className={className} {...props} onMouseEnter={(e) => {
-        if(variant === 'primary') e.currentTarget.style.transform = 'translateY(-2px)'
-        if(variant === 'ghost') e.currentTarget.style.background = 'var(--bg-card-hover)'
+    <button className={className} {...props} style={{ ...combinedStyle, ...(props.style || {}) }} onMouseEnter={(e) => {
+      if (variant === 'primary') e.currentTarget.style.transform = 'translateY(-2px)'
+      if (variant === 'ghost') e.currentTarget.style.background = 'var(--bg-card-hover)'
     }} onMouseLeave={(e) => {
-        if(variant === 'primary') e.currentTarget.style.transform = 'translateY(0)'
-        if(variant === 'ghost') e.currentTarget.style.background = 'transparent'
+      if (variant === 'primary') e.currentTarget.style.transform = 'translateY(0)'
+      if (variant === 'ghost') e.currentTarget.style.background = 'transparent'
     }}>
       {children}
     </button>

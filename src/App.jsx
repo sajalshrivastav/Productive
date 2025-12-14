@@ -27,84 +27,84 @@ const PAGES = [
 ]
 
 function AppLayout() {
-   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-   const location = useLocation()
-   const { logout } = useAuth()
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const location = useLocation()
+  const { logout } = useAuth()
 
-   return (
+  return (
     <div className="app-root">
-       <GlobalDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
-       
-       <div className="app-shell">
-         {/* Top header */}
-         <header className="app-header">
-           <div className="app-logo">
-             <div className="app-logo-badge">CB</div>
-             <div>
-               <div className="app-logo-text-title">Challenge OS</div>
-               <div className="app-logo-text-subtitle">
-                 Focus. Track. Ship. Grow.
-               </div>
-             </div>
-           </div>
-           {/* Functional Bar / Today Button */}
-           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-             <Button variant="ghost" onClick={() => setIsDrawerOpen(true)}>
-               Today
-             </Button>
-             <Button variant="ghost" onClick={logout} className="text-red-500">
-                Logout
-             </Button>
-           </div>
-         </header>
- 
-         {/* Nav */}
-         <div className="nav-bar-function">
-           <nav className="app-nav">
-             {PAGES.map((page) => (
-               <LinkButton 
-                 key={page.name} 
-                 to={page.path} 
-                 isActive={location.pathname === page.path || (page.path === '/' && location.pathname === '/dashboard')}
-               >
-                 {page.name}
-               </LinkButton>
-             ))}
-           </nav>
-           <div className="app-nav extra-nav-icon ">
-             <TodayInfo />
-             <Settings2 className="settings" size={16} />
-           </div>
-         </div>
- 
-         {/* Active page */}
-         <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Navigate to="/" replace />} />
-            <Route path="/habits" element={<Habits />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/challenges" element={<Challenges />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/jobs" element={<JobTracker />} />
-            <Route path="*" element={<div>Page not found</div>} />
-         </Routes>
-       </div>
+      <GlobalDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+
+      <div className="app-shell">
+        {/* Top header */}
+        <header className="app-header">
+          <div className="app-logo">
+            <div className="app-logo-badge">ON</div>
+            <div>
+              <div className="app-logo-text-title">Onyx</div>
+              <div className="app-logo-text-subtitle">
+                Focus. Track. Ship. Grow.
+              </div>
+            </div>
+          </div>
+          {/* Functional Bar / Today Button */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <Button variant="ghost" onClick={() => setIsDrawerOpen(true)} style={{ color: 'var(--text-main)' }}>
+              Today
+            </Button>
+            <Button variant="ghost" onClick={logout} style={{ color: 'var(--text-muted)' }}>
+              Logout
+            </Button>
+          </div>
+        </header>
+
+        {/* Nav */}
+        <div className="nav-bar-function">
+          <nav className="app-nav">
+            {PAGES.map((page) => (
+              <LinkButton
+                key={page.name}
+                to={page.path}
+                isActive={location.pathname === page.path || (page.path === '/' && location.pathname === '/dashboard')}
+              >
+                {page.name}
+              </LinkButton>
+            ))}
+          </nav>
+          <div className="app-nav extra-nav-icon ">
+            <TodayInfo />
+            <Settings2 className="settings" size={16} />
+          </div>
+        </div>
+
+        {/* Active page */}
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
+          <Route path="/habits" element={<Habits />} />
+          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/challenges" element={<Challenges />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/jobs" element={<JobTracker />} />
+          <Route path="*" element={<div>Page not found</div>} />
+        </Routes>
+      </div>
     </div>
-   )
+  )
 }
 
 import { Link } from 'react-router-dom'
 
 function LinkButton({ to, isActive, children }) {
-    return (
-        <Link 
-            to={to} 
-            className={'app-nav-button' + (isActive ? ' active' : '')}
-            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-            {children}
-        </Link>
-    )
+  return (
+    <Link
+      to={to}
+      className={'app-nav-button' + (isActive ? ' active' : '')}
+      style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      {children}
+    </Link>
+  )
 }
 
 export default function App() {
@@ -115,7 +115,7 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
-           <Route path="/*" element={<AppLayout />} />
+          <Route path="/*" element={<AppLayout />} />
         </Route>
       </Routes>
     </ThemeProvider>
