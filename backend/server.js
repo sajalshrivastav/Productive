@@ -22,12 +22,16 @@ import taskRoutes from './routes/taskRoutes.js';
 import habitRoutes from './routes/habitRoutes.js';
 import challengeRoutes from './routes/challengeRoutes.js';
 import focusSessionRoutes from './routes/focusSessionRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
+import eventRoutes from './routes/eventRoutes.js';
 
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/habits', habitRoutes);
 app.use('/api/challenges', challengeRoutes);
 app.use('/api/focus-sessions', focusSessionRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/events', eventRoutes);
 
 
 // Error Handling Middleware (ALWAYS LAST)

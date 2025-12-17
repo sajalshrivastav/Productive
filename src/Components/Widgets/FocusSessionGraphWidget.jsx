@@ -24,8 +24,8 @@ export default function FocusSessionGraphWidget() {
     }
 
     const glassStyle = {
-        background: '#1c1c1e',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-subtle)',
         borderRadius: '24px',
         padding: '20px',
         display: 'flex',

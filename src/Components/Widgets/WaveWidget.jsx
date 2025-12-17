@@ -129,7 +129,7 @@ export default function WaveWidget() {
                     </div>
                 </div>
 
-                <div style={{ background: '#27272a', padding: '4px 8px', borderRadius: '8px', fontSize: '0.8rem', color: '#a1a1aa' }}>
+                <div style={{ background: 'var(--bg-elevated)', padding: '4px 8px', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--text-soft)' }}>
                     {new Date().getFullYear()}
                 </div>
             </div>

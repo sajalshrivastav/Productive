@@ -11,6 +11,8 @@ import { AuthProvider } from './Context/AuthContext.jsx'
 import { FocusSessionProvider } from './Context/FocusSessionContext.jsx'
 import { ThemeProvider } from './Context/ThemeContext.jsx'
 import { ToastProvider } from './Context/ToastContext.jsx'
+import { ProjectProvider } from './Context/ProjectContext.jsx'
+import { EventProvider } from './Context/EventContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -23,7 +25,11 @@ createRoot(document.getElementById('root')).render(
                 <ChallengeProvider>
                   <HabitProvider>
                     <FocusSessionProvider>
-                      <App />
+                      <ProjectProvider>
+                        <EventProvider>
+                          <App />
+                        </EventProvider>
+                      </ProjectProvider>
                     </FocusSessionProvider>
                   </HabitProvider>
                 </ChallengeProvider>

@@ -3,8 +3,8 @@ import { useChallenge } from '../Context/ChallengeContext.jsx'
 import { useTasks } from '../Context/TaskContext.jsx'
 import { useHabits } from '../Context/HabitContext.jsx'
 import { useGamification } from '../Context/GamificationContext.jsx'
-import { Trophy, Bell, CloudSun, Flame, Moon, Sun } from 'lucide-react'
-import { useTheme } from '../Context/ThemeContext.jsx'
+import { Trophy, Bell, CloudSun, Flame } from 'lucide-react'
+
 
 // Wigggle Widgets
 import TasksWidget from '../Components/Widgets/TasksWidget.jsx'
@@ -31,7 +31,6 @@ export default function Dashboard() {
     const { habits, toggleDay } = useHabits()
 
     const { xp, level, getLevelProgress, title: userTitle } = useGamification()
-    const { theme, toggleTheme } = useTheme()
 
     const [plannerEvents, setPlannerEvents] = useState([])
     useEffect(() => {
@@ -92,17 +91,7 @@ export default function Dashboard() {
                     </span>
                 </div>
 
-                {/* UI TOGGLE PILL */}
-                <div
-                    onClick={toggleTheme}
-                    style={{
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        padding: '8px 12px', borderRadius: '50px',
-                        background: 'var(--wigggle-bg-inner)', border: '1px solid var(--wigggle-border)',
-                        cursor: 'pointer', color: 'var(--text-secondary)'
-                    }}>
-                    {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
-                </div>
+
 
                 {/* 3.1 PILL SHAPE WEATHER */}
                 <div style={{

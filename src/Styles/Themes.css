@@ -1,63 +1,30 @@
-/* Dark Theme (Default) */
-:root,
-[data-theme="dark"] {
+/* Dark Theme Only */
+:root {
     /* Base background */
-    --bg: #050711;
-    --bg-main: #030303;
-    --bg-panel: #0E0E10;
-    --bg-surface: #1C1C1E;
-    --bg-elevated: #111420;
-    --bg-card: rgba(18, 22, 33, 0.92);
+    --bg: #0a0a0a;
+    --bg-main: #0a0a0a;
+    --bg-panel: #111111;
+    --bg-surface: #1a1a1a;
+    --bg-elevated: #1e1e1e;
+    --bg-card: rgba(26, 26, 26, 0.95);
 
     /* Borders & shadows */
-    --border-subtle: rgba(255, 255, 255, 0.06);
-    --border-highlight: #3f3f46;
-    --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.5);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-highlight: #333333;
+    --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.6);
 
     /* Text */
-    --text-main: #f5f6fb;
-    --text-soft: #a6afc7;
-    --text-faint: #6f7484;
+    --text-main: #ffffff;
+    --text-soft: #a0a0a0;
+    --text-faint: #666666;
     --text-strong: #ffffff;
     --text-active: #ffffff;
-    --text-primary: #e4e4e7;
-    --text-secondary: #a1a1aa;
-    --text-muted: #52525b;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --text-muted: #666666;
 
-    /* Accent colors (used sparingly) */
+    /* Accent colors */
     --accent-pink: #ff7ab6;
-    --accent-blue: #7fb4ff;
-    --accent-amber: #ffc86f;
-    --accent-green: #7dffd2;
-}
-
-/* Light Theme */
-[data-theme="light"] {
-    /* Base background */
-    --bg: #ffffff;
-    --bg-main: #ffffff;
-    --bg-panel: #f8fafc;
-    --bg-surface: #f8fafc;
-    --bg-elevated: #f8fafc;
-    --bg-card: rgba(248, 250, 252, 0.95);
-
-    /* Borders & shadows */
-    --border-subtle: rgba(0, 0, 0, 0.08);
-    --border-highlight: #cbd5e1;
-    --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.1);
-
-    /* Text */
-    --text-main: #1e293b;
-    --text-soft: #64748b;
-    --text-faint: #94a3b8;
-    --text-strong: #0f172a;
-    --text-active: #0f172a;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-
-    /* Accent colors (adjusted for light theme) */
-    --accent-pink: #ec4899;
     --accent-blue: #3b82f6;
     --accent-amber: #f59e0b;
     --accent-green: #10b981;

@@ -13,7 +13,7 @@ export default function FocusListWidget() {
   const completion = Math.round((items.filter(i => i.done).length / items.length) * 100)
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#1c1c1e', borderRadius: '16px', overflow: 'hidden' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-elevated)', borderRadius: '16px', overflow: 'hidden' }}>
         {/* Header Section */}
         <div style={{ padding: '20px', background: 'var(--bg-surface)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>

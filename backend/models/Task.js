@@ -44,6 +44,19 @@ const taskSchema = mongoose.Schema({
         type: Boolean,
         default: false
     },
+    project: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Project',
+        required: false
+    },
+    scheduledTime: {
+        type: Date,
+        required: false
+    },
+    estimatedDuration: {
+        type: Number, // in minutes
+        required: false
+    },
     subtasks: [subtaskSchema]
 }, {
     timestamps: true

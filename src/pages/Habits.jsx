@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react'
 import HabitCreator from '../Components/habits/HabitCreator.jsx'
 import { useHabits } from '../Context/HabitContext.jsx'
-import { Check, Trash2, Flame, Edit2 } from 'lucide-react'
+import { Check, Trash2, Edit2 } from 'lucide-react'
+import { getIconComponent, getColorStyle, getColorValue } from '../utils/iconHelpers.jsx'
 
 function getDateKey(date = new Date()) {
   const y = date.getFullYear()
@@ -32,7 +33,8 @@ export default function Habits() {
   const [editData, setEditData] = useState({})
 
   const handleEditStart = (habit) => {
-      setEditingId(habit.id)
+      const habitId = habit.id || habit._id
+      setEditingId(habitId)
       setEditData({ title: habit.title, description: habit.description, icon: habit.icon, color: habit.color })
   }
 
@@ -44,8 +46,8 @@ export default function Habits() {
 
   return (
     <div className="animate-fade-in" style={{ 
-        display: 'grid', gridTemplateColumns: 'minmax(400px, 1.3fr) 1fr', gap: '40px', alignItems: 'start',
-        paddingBottom: '40px'
+        display: 'grid', gridTemplateColumns: '555px 1fr', gap: '32px', alignItems: 'start',
+        paddingBottom: '40px', maxWidth: '1400px', margin: '0 auto'
     }}>
         {/* LEFT COLUMN: CREATOR FORM */}
         <div>
@@ -54,109 +56,136 @@ export default function Habits() {
 
         {/* RIGHT COLUMN: HABIT LIST */}
         <div className="panel-card" style={{ 
-            background: 'var(--bg-surface)', borderRadius: '24px', padding: '32px',
-            border: '1px solid var(--border-subtle)', minHeight: '600px'
+            background: 'var(--bg-elevated)', borderRadius: '20px', padding: '28px',
+            border: '1px solid var(--border-subtle)', minHeight: '500px'
         }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Flame className="text-accent" /> Your Habits
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
+                🔥 Your Habits
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {habits.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', border: '2px dashed var(--border-subtle)', borderRadius: '16px' }}>
-                        <p>No habits tracked yet.</p>
+                    <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-soft)', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🌱</div>
+                        <p style={{ fontSize: '0.9rem', margin: 0 }}>No habits yet. Create your first habit to get started!</p>
                     </div>
                 )}
 
                 {habits.map(habit => {
+                    const habitId = habit.id || habit._id
                     const isCompletedToday = !!habit.history[todayKey]
                     return (
-                        <div key={habit.id} className="animate-fade-in" style={{ 
-                            background: 'var(--bg-panel)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-subtle)'
+                        <div key={habitId} className="animate-fade-in" style={{ 
+                            background: 'var(--bg-surface)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-subtle)',
+                            transition: 'all 0.2s ease'
                         }}>
-                             {editingId === habit.id ? (
-                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                     <div style={{ display: 'flex', gap: '12px' }}>
+                             {editingId === habitId ? (
+                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                     <div>
                                          <input 
-                                            value={editData.icon} 
-                                            onChange={e => setEditData({...editData, icon: e.target.value})}
-                                            style={{ width: '50px', fontSize: '1.5rem', textAlign: 'center', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'white' }}
+                                            value={editData.title} 
+                                            onChange={e => setEditData({...editData, title: e.target.value})}
+                                            placeholder="Habit Name"
+                                            style={{ width: '100%', padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'white', fontWeight: 600, fontSize: '0.95rem' }}
                                          />
-                                         <div style={{ flex: 1 }}>
-                                             <input 
-                                                value={editData.title} 
-                                                onChange={e => setEditData({...editData, title: e.target.value})}
-                                                placeholder="Habit Name"
-                                                style={{ width: '100%', padding: '8px', marginBottom: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'white', fontWeight: 700 }}
-                                             />
-                                             <input 
-                                                value={editData.description} 
-                                                onChange={e => setEditData({...editData, description: e.target.value})}
-                                                placeholder="Description"
-                                                style={{ width: '100%', padding: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}
-                                             />
+                                     </div>
+                                     <div>
+                                         <input 
+                                            value={editData.description} 
+                                            onChange={e => setEditData({...editData, description: e.target.value})}
+                                            placeholder="Description"
+                                            style={{ width: '100%', padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}
+                                         />
+                                     </div>
+                                     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                         <div style={{ 
+                                             width: '44px', height: '44px', borderRadius: '12px', 
+                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                             border: '1px solid var(--border-subtle)', color: 'white',
+                                             ...getColorStyle(editData.color)
+                                         }}>
+                                             {getIconComponent(editData.icon, 20)}
+                                         </div>
+                                         <div style={{ fontSize: '0.8rem', color: 'var(--text-soft)' }}>
+                                             Icon: {editData.icon} • Color: {editData.color}
                                          </div>
                                      </div>
                                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                         <button onClick={() => saveEdit(habit.id)} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: '6px', padding: '6px 12px', color: 'black', fontWeight: 600 }}>Save</button>
+                                         <button onClick={() => saveEdit(habitId)} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: '6px', padding: '6px 12px', color: 'black', fontWeight: 600 }}>Save</button>
                                          <button onClick={() => setEditingId(null)} style={{ background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '6px', padding: '6px 12px', color: 'white' }}>Cancel</button>
                                      </div>
                                  </div>
                              ) : (
                                  <>
-                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                                         <div style={{ display: 'flex', gap: '12px' }}>
-                                             <div style={{ fontSize: '24px' }}>{habit.icon}</div>
+                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                                         <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                                             <div style={{ 
+                                                 width: '44px', 
+                                                 height: '44px', 
+                                                 borderRadius: '12px', 
+                                                 display: 'flex', 
+                                                 alignItems: 'center', 
+                                                 justifyContent: 'center',
+                                                 border: '1px solid var(--border-subtle)',
+                                                 color: 'white',
+                                                 ...getColorStyle(habit.color)
+                                             }}>
+                                                 {getIconComponent(habit.icon, 20)}
+                                             </div>
                                              <div>
-                                                 <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{habit.title}</div>
-                                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{habit.description}</div>
+                                                 <div style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-main)', marginBottom: '2px' }}>{habit.title}</div>
+                                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-soft)' }}>{habit.description}</div>
                                              </div>
                                          </div>
-                                         <div style={{ display: 'flex', gap: '8px' }}>
-                                             <button onClick={() => handleEditStart(habit)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><Edit2 size={16}/></button>
-                                             <button onClick={() => deleteHabit(habit.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', opacity: 0.5, cursor: 'pointer' }}><Trash2 size={16}/></button>
+                                         <div style={{ display: 'flex', gap: '6px' }}>
+                                             <button onClick={() => handleEditStart(habit)} style={{ background: 'transparent', border: 'none', color: 'var(--text-soft)', cursor: 'pointer', padding: '4px', borderRadius: '6px' }} title="Edit"><Edit2 size={14}/></button>
+                                             <button onClick={() => deleteHabit(habitId)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', borderRadius: '6px' }} title="Delete"><Trash2 size={14}/></button>
                                          </div>
                                      </div>
 
-                                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'space-between', marginBottom: '24px', padding: '0 4px' }}>
                                          {days.map(d => {
                                              const done = habit.history[d.key]
                                              const isToday = d.key === todayKey
                                              return (
-                                                 <div key={d.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                                 <div key={d.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
                                                      <div 
-                                                        onClick={() => toggleDay(habit.id, d.key)}
+                                                        onClick={() => toggleDay(habitId, d.key)}
                                                         style={{ 
-                                                            width: '20px', height: '24px', borderRadius: '4px', cursor: 'pointer',
-                                                            background: done ? (habit.color === 'pink' ? '#ec4899' : habit.color === 'blue' ? '#3b82f6' : '#22c55e') : 'rgba(255,255,255,0.05)',
-                                                            border: isToday ? '1px solid var(--text-muted)' : 'none',
-                                                            transition: 'all 0.2s'
+                                                            width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer',
+                                                            background: done ? getColorValue(habit.color) : 'var(--bg-panel)',
+                                                            border: isToday ? '2px solid var(--text-main)' : '1px solid var(--border-subtle)',
+                                                            transition: 'all 0.2s ease',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center'
                                                         }}
-                                                     />
-                                                     <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{d.label}</span>
+                                                     >
+                                                        {done && <Check size={12} color="white" />}
+                                                     </div>
+                                                     <span style={{ fontSize: '0.65rem', color: 'var(--text-soft)', fontWeight: '500' }}>{d.label}</span>
                                                  </div>
                                              )
                                          })}
                                      </div>
 
-                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
-                                         <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Flame size={14} className="text-accent" /> {habit.streak} Day Streak</span>
-                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={14} /> {habit.total} Total</span>
+                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '20px', borderTop: '1px solid var(--border-subtle)' }}>
+                                         <div style={{ display: 'flex', gap: '20px', fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-soft)' }}>
+                                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>🔥 {habit.streak} Day Streak</span>
+                                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>✅ {habit.total} Total</span>
                                          </div>
                                          
                                          <button 
-                                            onClick={() => toggleDay(habit.id, todayKey)}
-                                            className={isCompletedToday ? "btn-secondary" : "btn-primary"}
+                                            onClick={() => toggleDay(habitId, todayKey)}
                                             style={{ 
-                                                padding: '8px 16px', borderRadius: '10px', fontWeight: 600, fontSize: '0.85rem',
-                                                display: 'flex', alignItems: 'center', gap: '6px',
-                                                background: isCompletedToday ? 'transparent' : 'white',
-                                                color: isCompletedToday ? 'var(--text-secondary)' : 'black',
-                                                border: isCompletedToday ? '1px solid var(--border-subtle)' : 'none'
+                                                padding: '10px 20px', borderRadius: '12px', fontWeight: 600, fontSize: '0.85rem',
+                                                display: 'flex', alignItems: 'center', gap: '6px', border: 'none', cursor: 'pointer',
+                                                background: isCompletedToday ? 'var(--bg-panel)' : 'var(--gradient-primary)',
+                                                color: isCompletedToday ? 'var(--text-soft)' : '#000000',
+                                                transition: 'all 0.2s ease'
                                             }}
                                          >
-                                             {isCompletedToday ? 'Completed' : 'Check In'}
+                                             {isCompletedToday ? '✓ Completed' : 'Check In'}
                                          </button>
                                      </div>
                                  </>

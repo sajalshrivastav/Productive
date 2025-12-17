@@ -94,39 +94,41 @@ export function TaskProvider({ children }) {
       }
 
       if (shouldSpawn) {
-        const alreadyExists = tasks.some(
-          (t) => t.dateKey === today && t.sourceRecurringId === rule.id
-        )
-        if (!alreadyExists) {
-          newInstances.push({
-            id: 'dist-' + Date.now() + Math.random(), // Temporary ID
-            title: rule.title,
-            dateKey: today,
-            type: 'recurring-instance',
-            sourceRecurringId: rule.id,
-            category: rule.category || 'General',
-            priority: rule.priority || 'P2',
-            status: 'todo',
-            done: false,
-            createdAt: new Date().toISOString(),
-          })
-        }
+        // Use functional update to get current tasks state
+        setTasks((currentTasks) => {
+          const alreadyExists = currentTasks.some(
+            (t) => t.dateKey === today && t.sourceRecurringId === rule.id
+          )
+          
+          if (!alreadyExists) {
+            const newInstance = {
+              id: 'dist-' + Date.now() + Math.random(), // Temporary ID
+              title: rule.title,
+              dateKey: today,
+              type: 'recurring-instance',
+              sourceRecurringId: rule.id,
+              category: rule.category || 'General',
+              priority: rule.priority || 'P2',
+              status: 'todo',
+              done: false,
+              createdAt: new Date().toISOString(),
+            }
+            
+            if (user) {
+              // For authenticated users, create via API
+              createTaskAPI(newInstance)
+              return currentTasks // Don't add to state here, API will handle it
+            } else {
+              // For local users, add to state
+              return [...currentTasks, newInstance]
+            }
+          }
+          
+          return currentTasks // No changes needed
+        })
       }
     })
-
-    if (newInstances.length > 0) {
-      if (user) {
-          // If logged in, we should POST these new instances to backend
-          // but for simplicity in this turn, we just add state and rely on 'addTask' logic if refactored
-          // or we just post them now.
-          newInstances.forEach(t => {
-              createTaskAPI(t)
-          })
-      } else {
-        setTasks((prev) => [...prev, ...newInstances])
-      }
-    }
-  }, [recurring, tasks, user]) 
+  }, [recurring, user]) // Removed 'tasks' from dependency to prevent infinite loop 
 
   const createTaskAPI = async (taskData) => {
       try {
@@ -140,6 +142,10 @@ export function TaskProvider({ children }) {
               category: taskData.category,
               status: taskData.status,
               sourceRecurringId: taskData.sourceRecurringId,
+              project: taskData.project, // Add project support
+              description: taskData.description, // Add description support
+              dueDate: taskData.dueDate, // Add due date support
+              assignee: taskData.assignee, // Add assignee support
               // subtasks default []
           }
           const { data } = await api.post('/tasks', payload)
@@ -151,7 +157,10 @@ export function TaskProvider({ children }) {
   
   const updateTaskAPI = async (id, updates) => {
       // optimistic
-      setTasks(prev => prev.map(t => t.id === id || t._id === id ? { ...t, ...updates } : t))
+      setTasks(prev => prev.map(t => {
+          const taskId = t.id || t._id
+          return taskId === id ? { ...t, ...updates } : t
+      }))
       try {
           await api.put(`/tasks/${id}`, updates)
       } catch (err) {
@@ -162,7 +171,10 @@ export function TaskProvider({ children }) {
 
   const deleteTaskAPI = async (id) => {
       // optimistic
-      setTasks(prev => prev.filter(t => t.id !== id && t._id !== id))
+      setTasks(prev => prev.filter(t => {
+          const taskId = t.id || t._id
+          return taskId !== id
+      }))
       try {
           await api.delete(`/tasks/${id}`)
       } catch (err) {
@@ -173,6 +185,10 @@ export function TaskProvider({ children }) {
   const addTask = (taskDetails) => {
     const {
         title,
+        description,
+        project,
+        assignee,
+        dueDate,
         dateKey = getTodayKey(),
         type = 'manual', 
         recurrence = 'none', 
@@ -207,6 +223,10 @@ export function TaskProvider({ children }) {
     if (user) {
         createTaskAPI({
             title: title.trim(),
+            description,
+            project,
+            assignee,
+            dueDate,
             dateKey,
             type,
             priority,
@@ -217,6 +237,10 @@ export function TaskProvider({ children }) {
         const newTask = {
           id: 't' + Date.now(),
           title: title.trim(),
+          description,
+          project,
+          assignee,
+          dueDate,
           dateKey,
           type,
           priority,
@@ -230,7 +254,10 @@ export function TaskProvider({ children }) {
   }
 
   const toggleTask = (id) => {
-    const task = tasks.find(t => t.id === id || t._id === id)
+    const task = tasks.find(t => {
+        const taskId = t.id || t._id
+        return taskId === id
+    })
     if (!task) return
     
     const newDone = !task.done
@@ -241,7 +268,8 @@ export function TaskProvider({ children }) {
     } else {
         setTasks((prev) =>
           prev.map((t) => {
-              if (t.id !== id) return t
+              const taskId = t.id || t._id
+              if (taskId !== id) return t
               return { ...t, done: newDone, status: newStatus }
           }),
         )
@@ -253,7 +281,8 @@ export function TaskProvider({ children }) {
           updateTaskAPI(id, { status: newStatus, done: newStatus === 'done' })
       } else {
           setTasks(prev => prev.map(t => {
-              if (t.id !== id) return t
+              const taskId = t.id || t._id
+              if (taskId !== id) return t
               return { 
                   ...t, 
                   status: newStatus, 
@@ -282,14 +311,18 @@ export function TaskProvider({ children }) {
   const addSubtask = (taskId, title) => {
     if (!title.trim()) return
     // Assuming backend support later, for now optimistic
-    const task = tasks.find(t => t.id === taskId || t._id === taskId)
+    const task = tasks.find(t => {
+        const currentTaskId = t.id || t._id
+        return currentTaskId === taskId
+    })
     if(task && user) {
         const newSub = { title: title.trim(), done: false } // No ID generated by subtask schema yet unless updated
         const newSubtasks = [...(task.subtasks || []), newSub]
         updateTaskAPI(taskId, { subtasks: newSubtasks })
     } else {
         setTasks(prev => prev.map(t => {
-          if (t.id !== taskId) return t
+          const currentTaskId = t.id || t._id
+          if (currentTaskId !== taskId) return t
           const sub = {
             id: 's' + Date.now(),
             title: title.trim(),
@@ -301,22 +334,30 @@ export function TaskProvider({ children }) {
   }
 
   const toggleSubtask = (taskId, subTaskId) => {
-      const task = tasks.find(t => t.id === taskId || t._id === taskId)
+      const task = tasks.find(t => {
+          const currentTaskId = t.id || t._id
+          return currentTaskId === taskId
+      })
       if(task && user) {
           // find index or match logic depends on if subTaskId is from Mongo ( _id) or local
           // Backend subtasks have _id. 
           const newSubtasks = (task.subtasks || []).map(s => {
                // Robust check for ID
-               if (s._id === subTaskId || s.id === subTaskId) return { ...s, done: !s.done }
+               const currentSubId = s._id || s.id
+               if (currentSubId === subTaskId) return { ...s, done: !s.done }
                return s
           })
           updateTaskAPI(taskId, { subtasks: newSubtasks })
       } else {
         setTasks(prev => prev.map(t => {
-          if (t.id !== taskId) return t
+          const currentTaskId = t.id || t._id
+          if (currentTaskId !== taskId) return t
           return {
             ...t,
-            subtasks: (t.subtasks || []).map(s => s.id === subTaskId ? { ...s, done: !s.done } : s)
+            subtasks: (t.subtasks || []).map(s => {
+                const currentSubId = s._id || s.id
+                return currentSubId === subTaskId ? { ...s, done: !s.done } : s
+            })
           }
         }))
     }
@@ -327,7 +368,10 @@ export function TaskProvider({ children }) {
       if (user) {
           updateTaskAPI(id, { isArchived: true })
       } else {
-          setTasks(prev => prev.map(t => t.id === id ? { ...t, isArchived: true } : t))
+          setTasks(prev => prev.map(t => {
+              const taskId = t.id || t._id
+              return taskId === id ? { ...t, isArchived: true } : t
+          }))
       }
   }
 
@@ -335,7 +379,10 @@ export function TaskProvider({ children }) {
       if (user) {
           updateTaskAPI(id, { isArchived: false })
       } else {
-          setTasks(prev => prev.map(t => t.id === id ? { ...t, isArchived: false } : t))
+          setTasks(prev => prev.map(t => {
+              const taskId = t.id || t._id
+              return taskId === id ? { ...t, isArchived: false } : t
+          }))
       }
   }
 
@@ -344,7 +391,10 @@ export function TaskProvider({ children }) {
     if(user) {
         deleteTaskAPI(id)
     } else {
-        setTasks((prev) => prev.filter((t) => t.id !== id))
+        setTasks((prev) => prev.filter((t) => {
+            const taskId = t.id || t._id
+            return taskId !== id
+        }))
     }
   }
   

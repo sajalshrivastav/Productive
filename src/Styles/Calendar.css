@@ -37,10 +37,10 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    background: #1c1c1e;
+    background: var(--bg-elevated);
     padding: 6px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-subtle);
 }
 
 .cal-nav-btn-new {
@@ -88,11 +88,11 @@
 
 .main-view-toggles {
     display: flex;
-    background: #000;
+    background: var(--bg-elevated);
     border-radius: 20px;
     padding: 4px;
     gap: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-subtle);
 }
 
 .view-toggle-btn {
@@ -108,8 +108,8 @@
 }
 
 .view-toggle-btn.active {
-    background: #fff;
-    color: #000;
+    background: var(--text-main);
+    color: var(--bg);
 }
 
 .view-toggle-btn:hover:not(.active) {
@@ -155,7 +155,7 @@
 
 /* Mini Calendar Widget */
 .mini-calendar-widget {
-    background: #1c1c1e;
+    background: var(--bg-elevated);
     border-radius: 24px;
     padding: 24px;
     display: flex;
@@ -234,8 +234,8 @@
 }
 
 .mini-cal-day.today {
-    background: #fff;
-    color: #000;
+    background: var(--text-main);
+    color: var(--bg);
     font-weight: 700;
 }
 
@@ -246,7 +246,7 @@
 
 /* Upcoming Events Widget */
 .upcoming-widget {
-    background: #1c1c1e;
+    background: var(--bg-elevated);
     border-radius: 24px;
     padding: 24px;
     display: flex;
@@ -328,7 +328,7 @@
 
 /* Wave Widget */
 .wave-widget {
-    background: #1c1c1e;
+    background: var(--bg-elevated);
     border-radius: 24px;
     padding: 24px;
     display: flex;
@@ -361,7 +361,7 @@
 
 /* ===== MAIN CONTENT AREA ===== */
 .calendar-main {
-    background: #1c1c1e;
+    background: var(--bg-elevated);
     border-radius: 32px;
     display: flex;
     flex-direction: column;
@@ -415,8 +415,8 @@
 }
 
 .calendar-day-pill.today {
-    background: #fff;
-    color: #000;
+    background: var(--text-main);
+    color: var(--bg);
 }
 
 /* Override overrides */
@@ -641,8 +641,8 @@
 }
 
 .month-nav-btn:hover {
-    background: #fff;
-    color: #000;
+    background: var(--text-main);
+    color: var(--bg);
 }
 
 .month-calendar-grid {
@@ -722,7 +722,7 @@
 }
 
 .ev-modal {
-    background: #18181b;
+    background: var(--bg-card);
     width: 100%;
     max-width: 500px;
     border-radius: 20px;
@@ -804,9 +804,9 @@
 }
 
 .type-pill.active {
-    background: #fff;
-    color: #000;
-    border-color: #fff;
+    background: var(--text-main);
+    color: var(--bg);
+    border-color: var(--text-main);
 }
 
 .ev-label {
@@ -863,8 +863,8 @@
 }
 
 .ev-btn-primary {
-    background: #fff;
-    color: #000;
+    background: var(--text-main);
+    color: var(--bg);
 }
 
 .ev-btn-primary:hover {

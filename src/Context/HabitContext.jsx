@@ -67,7 +67,10 @@ export function HabitProvider({ children }) {
 
   const deleteHabit = async (id) => {
       // Optimistic
-      setHabits(prev => prev.filter(h => h.id !== id && h._id !== id))
+      setHabits(prev => prev.filter(h => {
+          const currentHabitId = h.id || h._id
+          return currentHabitId !== id
+      }))
       if(user) {
           try {
               await api.delete(`/habits/${id}`)
@@ -83,7 +86,8 @@ export function HabitProvider({ children }) {
       let updatedHabit = null
       
       setHabits(prev => prev.map(h => {
-          if (h.id !== habitId && h._id !== habitId) return h
+          const currentHabitId = h.id || h._id
+          if (currentHabitId !== habitId) return h
           
           const newHistory = { ...(h.history || {}) }
           if (newHistory[dateKey]) delete newHistory[dateKey]
@@ -126,7 +130,10 @@ export function HabitProvider({ children }) {
   }
 
   const updateHabit = async (id, updates) => {
-      setHabits(prev => prev.map(h => h.id === id || h._id === id ? { ...h, ...updates } : h))
+      setHabits(prev => prev.map(h => {
+          const currentHabitId = h.id || h._id
+          return currentHabitId === id ? { ...h, ...updates } : h
+      }))
       if(user) {
           try {
               await api.put(`/habits/${id}`, updates)

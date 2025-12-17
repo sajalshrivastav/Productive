@@ -40,7 +40,7 @@ export default function HabitsWidget() {
                            onClick={() => toggleDay(readingHabit.id, todayKey)}
                            style={{ 
                                width: '48px', height: '48px', borderRadius: '16px', 
-                               background: '#1a1a1a', border: '1px solid #333',
+                               background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
                                display: 'flex', alignItems: 'center', justifyContent: 'center',
                                cursor: 'pointer',
                                color: readingHabit.history[todayKey] ? '#ef4444' : '#555'

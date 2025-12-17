@@ -176,28 +176,30 @@ export default function Tasks() {
                     </div>
                 )}
 
-                {(view === 'active' || view === 'history') && (view === 'active' ? activeTasks : archivedTasks).map(t => (
+                {(view === 'active' || view === 'history') && (view === 'active' ? activeTasks : archivedTasks).map(t => {
+                    const taskId = t.id || t._id
+                    return (
                     <div 
-                        key={t.id} 
+                        key={taskId} 
                         className="task-item" 
                         draggable={view === 'active'}
-                        onDragStart={(e) => handleDragStart(e, t.id)}
+                        onDragStart={(e) => handleDragStart(e, taskId)}
                         onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, t.id)}
+                        onDrop={(e) => handleDrop(e, taskId)}
                         style={{ 
                             flexDirection: 'column', alignItems: 'stretch', cursor: view==='active' ? 'grab' : 'default',
-                            opacity: dragId === t.id ? 0.5 : 1,
-                            border: dragId === t.id ? '1px dashed var(--accent-primary)' : '1px solid var(--border-subtle)'
+                            opacity: dragId === taskId ? 0.5 : 1,
+                            border: dragId === taskId ? '1px dashed var(--accent-primary)' : '1px solid var(--border-subtle)'
                         }}
                     >
                         
                         {/* Main Row */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div className="task-checkbox" onClick={() => toggleTask(t.id)} style={{ background: t.done ? 'var(--gradient-green)' : 'transparent', borderColor: t.done ? 'transparent' : 'var(--text-secondary)', cursor: 'pointer' }}>
+                            <div className="task-checkbox" onClick={() => toggleTask(taskId)} style={{ background: t.done ? 'var(--gradient-green)' : 'transparent', borderColor: t.done ? 'transparent' : 'var(--text-secondary)', cursor: 'pointer' }}>
                                 {t.done && <CheckSquare size={14} color="black" />}
                             </div>
                             
-                            <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setExpandedTask(expandedTask === t.id ? null : t.id)}>
+                            <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setExpandedTask(expandedTask === taskId ? null : taskId)}>
                                 <div style={{ fontWeight: 500, textDecoration: t.done ? 'line-through' : 'none', color: t.done ? 'var(--text-muted)' : 'var(--text-primary)' }}>{t.title}</div>
                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '8px' }}>
                                     <span style={{ color: 'var(--accent-primary)' }}>{t.category}</span>
@@ -213,68 +215,76 @@ export default function Tasks() {
                             )}
 
                             {/* Expand Chevron */}
-                            <button onClick={() => setExpandedTask(expandedTask === t.id ? null : t.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                                {expandedTask === t.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            <button onClick={() => setExpandedTask(expandedTask === taskId ? null : taskId)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                {expandedTask === taskId ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                             </button>
 
                             {/* Archive/Restore Action */}
                             {view === 'active' ? (
-                                <button onClick={() => archiveTask(t.id)} title="Archive" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                <button onClick={() => archiveTask(taskId)} title="Archive" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                                     <Archive size={16} />
                                 </button>
                             ) : (
-                                <button onClick={() => restoreTask(t.id)} title="Restore" style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer' }}>
+                                <button onClick={() => restoreTask(taskId)} title="Restore" style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer' }}>
                                     <RotateCcw size={16} />
                                 </button>
                             )}
                             
                             {/* Edit Button */}
-                             <button onClick={(e) => { e.stopPropagation(); setEditingTaskId(t.id); setEditTitle(t.title); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                             <button onClick={(e) => { e.stopPropagation(); setEditingTaskId(taskId); setEditTitle(t.title); }} title="Edit" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                                 <Edit2 size={16} />
+                            </button>
+
+                            {/* Delete Button */}
+                            <button onClick={(e) => { e.stopPropagation(); deleteTask(taskId); }} title="Delete" style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                                <Trash2 size={16} />
                             </button>
                         </div>
 
                         {/* Edit Mode Input */}
-                        {editingTaskId === t.id && (
+                        {editingTaskId === taskId && (
                              <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }} onClick={e => e.stopPropagation()}>
                                  <input 
                                     value={editTitle}
                                     onChange={(e) => setEditTitle(e.target.value)}
                                     autoFocus
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(t.id)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(taskId)}
                                     style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid var(--accent-primary)', background: 'var(--bg-surface)', color: 'white' }}
                                  />
-                                 <button onClick={() => handleSaveEdit(t.id)} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: '6px', padding: '0 12px', color: 'black', fontWeight: 600 }}>Save</button>
+                                 <button onClick={() => handleSaveEdit(taskId)} style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: '6px', padding: '0 12px', color: 'black', fontWeight: 600 }}>Save</button>
                                  <button onClick={() => setEditingTaskId(null)} style={{ background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '6px', padding: '0 12px', color: 'white' }}>Cancel</button>
                              </div>
                         )}
 
                         {/* Expanded Subtasks */}
-                        {expandedTask === t.id && (
+                        {expandedTask === taskId && (
                             <div style={{ marginTop: '12px', paddingLeft: '34px', borderLeft: '2px solid var(--border-subtle)' }}>
-                                {t.subtasks && t.subtasks.map(s => (
-                                    <div key={s.id} onClick={() => toggleSubtask(t.id, s.id)} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
+                                {t.subtasks && t.subtasks.map(s => {
+                                    const subTaskId = s.id || s._id
+                                    return (
+                                    <div key={subTaskId} onClick={() => toggleSubtask(taskId, subTaskId)} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
                                         <div style={{ width: 14, height: 14, border: '1px solid var(--text-muted)', borderRadius: 3, background: s.done ? 'var(--text-muted)' : 'transparent' }}></div>
                                         <div style={{ fontSize: '0.9rem', color: s.done ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: s.done ? 'line-through' : 'none' }}>{s.title}</div>
                                     </div>
-                                ))}
+                                )})}
                                 
                                 {view === 'active' && (
                                     <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                                         <input 
                                             value={newSubtask}
                                             onChange={(e) => setNewSubtask(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleAddSub(t.id)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAddSub(taskId)}
                                             placeholder="Add subtask..."
                                             style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', padding: '4px', fontSize: '0.85rem', color: 'var(--text-secondary)', width: '100%' }}
                                         />
-                                        <button onClick={() => handleAddSub(t.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.8rem' }}>Add</button>
+                                        <button onClick={() => handleAddSub(taskId)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.8rem' }}>Add</button>
                                     </div>
                                 )}
                             </div>
                         )}
                     </div>
-                ))}
+                    )
+                })}
             </div>
         </div>
       </div>

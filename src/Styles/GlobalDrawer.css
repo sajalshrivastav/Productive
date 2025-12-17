@@ -1,0 +1,215 @@
+.global-drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 9998;
+}
+
+.global-drawer-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 400px;
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border-subtle);
+    z-index: 9999;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    border-top-left-radius: 25px;
+    border-bottom-left-radius: 25px;
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+}
+
+.global-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.global-header-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.global-header-close-button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.global-tabs-container {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 16px;
+}
+
+.global-tabs-button {
+    padding: 8px;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    flex: 1;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.global-tabs-button:hover {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+}
+
+.global-tabs-button.active {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+}
+
+.global-content-container {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.global-content-focus-conatiner {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.global-content-focus-Text {
+    margin-bottom: 24px;
+    font-size: 4rem;
+    font-weight: 500;
+    letter-spacing: '-1px';
+}
+
+.focus-break-switch {
+    border: 1px solid grey;
+    padding: 5px;
+    border-radius: 20px;
+    background-color: black;
+}
+
+/* Enhanced Focus Timer Animations */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(16, 185, 129, 0.6);
+    }
+}
+
+.timer-active {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.timer-glow {
+    animation: glow 3s ease-in-out infinite;
+}
+
+/* Smooth transitions for theme changes */
+.theme-transition {
+    transition: background 0.5s ease, color 0.3s ease;
+}
+
+/* Progress circle animation */
+.progress-circle {
+    transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Button hover effects */
+.control-button {
+    transition: all 0.2s ease;
+}
+
+.control-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.control-button:active {
+    transform: translateY(0);
+}
+
+/* Stats animation */
+.stat-number {
+    transition: all 0.3s ease;
+}
+
+.stat-number:hover {
+    transform: scale(1.1);
+}
+
+/* Preset button animations */
+.preset-button {
+    transition: all 0.2s ease;
+}
+
+.preset-button:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Flip clock animations */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(0.9);
+    }
+}
+
+/* Digital clock glow effect */
+@keyframes digitalGlow {
+    0%, 100% {
+        text-shadow: 0 0 20px rgba(255,255,255,0.8), 0 0 40px rgba(255,255,255,0.4);
+    }
+    50% {
+        text-shadow: 0 0 30px rgba(255,255,255,1), 0 0 60px rgba(255,255,255,0.6);
+    }
+}

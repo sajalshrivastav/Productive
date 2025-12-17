@@ -81,16 +81,18 @@ export default function KanbanBoard() {
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{tasks.length}</span>
                     </div>
 
-                    {tasks.map(t => (
+                    {tasks.map(t => {
+                        const taskId = t.id || t._id
+                        return (
                         <div 
-                            key={t.id}
+                            key={taskId}
                             draggable
-                            onDragStart={(e) => onDragStart(e, t.id)}
+                            onDragStart={(e) => onDragStart(e, taskId)}
                             style={{ 
                                 padding: '12px', background: 'var(--bg-surface)', 
                                 borderRadius: '12px', border: '1px solid var(--border-subtle)',
                                 cursor: 'grab', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                                opacity: draggedTaskId === t.id ? 0.5 : 1
+                                opacity: draggedTaskId === taskId ? 0.5 : 1
                             }}
                         >
                             <div style={{ fontSize: '0.9rem', fontWeight: 500, marginBottom: '8px' }}>{t.title}</div>
@@ -112,7 +114,7 @@ export default function KanbanBoard() {
                                 )}
                             </div>
                         </div>
-                    ))}
+                    )})}
                     
                     {tasks.length === 0 && (
                         <div style={{ 

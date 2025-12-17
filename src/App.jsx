@@ -7,6 +7,7 @@ import Tasks from './pages/Task.jsx'
 import Challenges from './pages/Challenges.jsx'
 import CalendarPage from './pages/Calendar.jsx'
 import JobTracker from './pages/JobTracker.jsx'
+import Projects from './pages/Projects.jsx'
 import Productivity from './pages/Productivity.jsx'
 import { Settings2 } from 'lucide-react'
 import TodayInfo from './Components/dashboard/TodayInfo.jsx'
@@ -19,6 +20,7 @@ import { ThemeProvider } from './Context/ThemeContext.jsx'
 
 const PAGES = [
   { name: 'Dashboard', path: '/' },
+  { name: 'Projects', path: '/projects' },
   { name: 'Habits', path: '/habits' },
   { name: 'Tasks', path: '/tasks' },
   { name: 'Challenges', path: '/challenges' },
@@ -81,6 +83,7 @@ function AppLayout() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Navigate to="/" replace />} />
+          <Route path="/projects" element={<Projects />} />
           <Route path="/habits" element={<Habits />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/challenges" element={<Challenges />} />
