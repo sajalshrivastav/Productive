@@ -1,4 +1,4 @@
-import React from 'react'
+import { CSSProperties } from 'react'
 import { 
   Heart, Star, Target, Zap, Coffee, Book, Dumbbell, 
   Moon, Sun, Droplets, Leaf, Music, Camera, Palette,
@@ -6,11 +6,14 @@ import {
   Home, Car, Train, Bus, Truck, Ship, Rocket,
   Apple, Pizza, Cake, Coffee as CoffeeIcon, Sandwich, Cookie,
   Check, X, Plus, Minus, ArrowUp, ArrowDown,
-  Circle, Square, Triangle, Diamond, Hexagon, Octagon
+  Circle, Square, Triangle, Diamond, Hexagon, Octagon,
+  LucideIcon
 } from 'lucide-react'
 
+// ... (omitting strict imports for brevity if tool allows, but exact content is safer)
+
 // Icon mapping
-const ICON_MAP = {
+const ICON_MAP: Record<string, LucideIcon> = {
   'Heart': Heart,
   'Star': Star,
   'Target': Target,
@@ -58,7 +61,7 @@ const ICON_MAP = {
 }
 
 // Color definitions
-const COLOR_STYLES = {
+const COLOR_STYLES: Record<string, CSSProperties> = {
   // Solid colors
   'pink': { backgroundColor: '#ec4899' },
   'blue': { backgroundColor: '#3b82f6' },
@@ -88,7 +91,7 @@ const COLOR_STYLES = {
   'gradient-cosmic': { background: 'linear-gradient(135deg, #667eea, #764ba2)' }
 }
 
-export function getIconComponent(iconName, size = 20) {
+export function getIconComponent(iconName: string, size: number = 20): JSX.Element {
   const IconComponent = ICON_MAP[iconName]
   if (!IconComponent) {
     return <Star size={size} /> // Default fallback
@@ -96,19 +99,19 @@ export function getIconComponent(iconName, size = 20) {
   return <IconComponent size={size} />
 }
 
-export function getColorStyle(colorName) {
+export function getColorStyle(colorName: string): CSSProperties {
   return COLOR_STYLES[colorName] || { backgroundColor: '#ec4899' } // Default fallback
 }
 
-export function getColorValue(colorName) {
+export function getColorValue(colorName: string): string {
   const style = COLOR_STYLES[colorName]
   if (!style) return '#ec4899'
   
   if (style.background) {
     // For gradients, return the first color
-    const match = style.background.match(/#[a-fA-F0-9]{6}/)
+    const match = (style.background as string).match(/#[a-fA-F0-9]{6}/)
     return match ? match[0] : '#ec4899'
   }
   
-  return style.backgroundColor || '#ec4899'
+  return (style.backgroundColor as string) || '#ec4899'
 }

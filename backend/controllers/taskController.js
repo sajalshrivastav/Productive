@@ -13,17 +13,19 @@ const getTasks = asyncHandler(async (req, res) => {
 // @route   POST /api/tasks
 // @access  Private
 const createTask = asyncHandler(async (req, res) => {
-    const { title, dateKey, type, priority, category, status, subtasks } = req.body;
+    const { title, description, dateKey, type, priority, category, status, subtasks, project } = req.body;
 
     const task = new Task({
         user: req.user._id,
         title,
+        description,
         dateKey,
         type,
         priority,
         category,
         status,
         subtasks,
+        project,
         isArchived: false
     });
 
@@ -44,11 +46,13 @@ const updateTask = asyncHandler(async (req, res) => {
         }
 
         task.title = req.body.title || task.title;
+        task.description = req.body.description || task.description;
         task.dateKey = req.body.dateKey || task.dateKey;
         task.type = req.body.type || task.type;
         task.priority = req.body.priority || task.priority;
         task.category = req.body.category || task.category;
         task.status = req.body.status || task.status;
+        task.project = req.body.project || task.project;
         task.isArchived = req.body.isArchived !== undefined ? req.body.isArchived : task.isArchived;
         if (req.body.subtasks) {
             task.subtasks = req.body.subtasks;

@@ -31,10 +31,14 @@ export function TaskProvider({ children }) {
       if (user) {
         try {
           const { data } = await api.get('/tasks')
-          // Transform if needed, for now assuming backend returns compatible array
-          setTasks(data)
+          // Transform: Ensure done is synced with status
+          const mappedData = data.map(t => ({
+            ...t,
+            done: t.status === 'done'
+          }))
+          setTasks(mappedData)
         } catch (error) {
-            console.error("Failed to fetch tasks", error)
+          console.error("Failed to fetch tasks", error)
         }
       } else {
         // Fallback to local storage
@@ -55,13 +59,13 @@ export function TaskProvider({ children }) {
   // For now, let's disable local storage sync if user is logged in to avoid conflicts
   useEffect(() => {
     if (!user) {
-        localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks))
+      localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks))
     }
   }, [tasks, user])
 
   useEffect(() => {
     if (!user) {
-        localStorage.setItem(STORAGE_KEY_RECURRING, JSON.stringify(recurring))
+      localStorage.setItem(STORAGE_KEY_RECURRING, JSON.stringify(recurring))
     }
   }, [recurring, user])
 
@@ -77,20 +81,20 @@ export function TaskProvider({ children }) {
     recurring.forEach((rule) => {
       const ruleDate = new Date(rule.createdAt)
       const d = new Date() // Today
-      
+
       let shouldSpawn = false
 
       if (rule.frequency === 'daily') {
-          shouldSpawn = true
+        shouldSpawn = true
       } else if (rule.frequency === 'weekly') {
-          // Same day of week (0-6)
-          shouldSpawn = d.getDay() === ruleDate.getDay()
+        // Same day of week (0-6)
+        shouldSpawn = d.getDay() === ruleDate.getDay()
       } else if (rule.frequency === 'monthly') {
-          // Same day of month (1-31)
-          shouldSpawn = d.getDate() === ruleDate.getDate()
+        // Same day of month (1-31)
+        shouldSpawn = d.getDate() === ruleDate.getDate()
       } else if (rule.frequency === 'yearly') {
-          // Same month and day
-          shouldSpawn = d.getMonth() === ruleDate.getMonth() && d.getDate() === ruleDate.getDate()
+        // Same month and day
+        shouldSpawn = d.getMonth() === ruleDate.getMonth() && d.getDate() === ruleDate.getDate()
       }
 
       if (shouldSpawn) {
@@ -99,7 +103,7 @@ export function TaskProvider({ children }) {
           const alreadyExists = currentTasks.some(
             (t) => t.dateKey === today && t.sourceRecurringId === rule.id
           )
-          
+
           if (!alreadyExists) {
             const newInstance = {
               id: 'dist-' + Date.now() + Math.random(), // Temporary ID
@@ -113,7 +117,7 @@ export function TaskProvider({ children }) {
               done: false,
               createdAt: new Date().toISOString(),
             }
-            
+
             if (user) {
               // For authenticated users, create via API
               createTaskAPI(newInstance)
@@ -123,7 +127,7 @@ export function TaskProvider({ children }) {
               return [...currentTasks, newInstance]
             }
           }
-          
+
           return currentTasks // No changes needed
         })
       }
@@ -131,165 +135,167 @@ export function TaskProvider({ children }) {
   }, [recurring, user]) // Removed 'tasks' from dependency to prevent infinite loop 
 
   const createTaskAPI = async (taskData) => {
-      try {
-          // backend expects "subtasks", "isArchived" etc.
-          // formatting to match schema
-          const payload = {
-              title: taskData.title,
-              dateKey: taskData.dateKey,
-              type: taskData.type,
-              priority: taskData.priority,
-              category: taskData.category,
-              status: taskData.status,
-              sourceRecurringId: taskData.sourceRecurringId,
-              project: taskData.project, // Add project support
-              description: taskData.description, // Add description support
-              dueDate: taskData.dueDate, // Add due date support
-              assignee: taskData.assignee, // Add assignee support
-              // subtasks default []
-          }
-          const { data } = await api.post('/tasks', payload)
-          setTasks(prev => [...prev, data]) // User real ID from backend
-      } catch (err) {
-          console.error("Failed to create task", err)
+    try {
+      // backend expects "subtasks", "isArchived" etc.
+      // formatting to match schema
+      const payload = {
+        title: taskData.title,
+        dateKey: taskData.dateKey,
+        type: taskData.type,
+        priority: taskData.priority,
+        category: taskData.category,
+        status: taskData.status,
+        sourceRecurringId: taskData.sourceRecurringId,
+        project: taskData.project, // Add project support
+        description: taskData.description, // Add description support
+        dueDate: taskData.dueDate, // Add due date support
+        assignee: taskData.assignee, // Add assignee support
+        // subtasks default []
       }
+      const { data } = await api.post('/tasks', payload)
+      // Ensure 'done' property is consistent with status
+      const newTask = { ...data, done: data.status === 'done' }
+      setTasks(prev => [...prev, newTask]) // Use real ID from backend
+    } catch (err) {
+      console.error("Failed to create task", err)
+    }
   }
-  
+
   const updateTaskAPI = async (id, updates) => {
-      // optimistic
-      setTasks(prev => prev.map(t => {
-          const taskId = t.id || t._id
-          return taskId === id ? { ...t, ...updates } : t
-      }))
-      try {
-          await api.put(`/tasks/${id}`, updates)
-      } catch (err) {
-          console.error("Update failed", err)
-          // Revert?
-      }
+    // optimistic
+    setTasks(prev => prev.map(t => {
+      const taskId = t.id || t._id
+      return taskId === id ? { ...t, ...updates } : t
+    }))
+    try {
+      await api.put(`/tasks/${id}`, updates)
+    } catch (err) {
+      console.error("Update failed", err)
+      // Revert?
+    }
   }
 
   const deleteTaskAPI = async (id) => {
-      // optimistic
-      setTasks(prev => prev.filter(t => {
-          const taskId = t.id || t._id
-          return taskId !== id
-      }))
-      try {
-          await api.delete(`/tasks/${id}`)
-      } catch (err) {
-          console.error("Delete failed", err)
-      }
+    // optimistic
+    setTasks(prev => prev.filter(t => {
+      const taskId = t.id || t._id
+      return taskId !== id
+    }))
+    try {
+      await api.delete(`/tasks/${id}`)
+    } catch (err) {
+      console.error("Delete failed", err)
+    }
   }
 
   const addTask = (taskDetails) => {
     const {
-        title,
-        description,
-        project,
-        assignee,
-        dueDate,
-        dateKey = getTodayKey(),
-        type = 'manual', 
-        recurrence = 'none', 
-        priority = 'P2',
-        category = 'General',
-        status = 'todo'
+      title,
+      description,
+      project,
+      assignee,
+      dueDate,
+      dateKey = getTodayKey(),
+      type = 'manual',
+      recurrence = 'none',
+      priority = 'P2',
+      category = 'General',
+      status = 'todo'
     } = taskDetails
 
     if (!title.trim()) return
 
     if (recurrence !== 'none') {
-        // Recurring logic - keeping local for now or need Model update
-        // We didn't enable Recurring on Backend yet. 
-        // Let's just keep recurring in local state (or duplicate logic) for now and only sync "instances"
-        // OR better: handle recurring locally and post instances.
-        const newRule = {
-            id: 'rec-' + Date.now(),
-            title: title.trim(),
-            frequency: recurrence,
-            priority,
-            category,
-            createdAt: new Date().toISOString()
-        }
-        setRecurring(prev => [...prev, newRule])
-        if (recurrence === 'daily') {
-            // let effect handle it
-        }
-        return // End here for recurring
+      // Recurring logic - keeping local for now or need Model update
+      // We didn't enable Recurring on Backend yet. 
+      // Let's just keep recurring in local state (or duplicate logic) for now and only sync "instances"
+      // OR better: handle recurring locally and post instances.
+      const newRule = {
+        id: 'rec-' + Date.now(),
+        title: title.trim(),
+        frequency: recurrence,
+        priority,
+        category,
+        createdAt: new Date().toISOString()
+      }
+      setRecurring(prev => [...prev, newRule])
+      if (recurrence === 'daily') {
+        // let effect handle it
+      }
+      return // End here for recurring
     }
 
     // Normal Task
     if (user) {
-        createTaskAPI({
-            title: title.trim(),
-            description,
-            project,
-            assignee,
-            dueDate,
-            dateKey,
-            type,
-            priority,
-            category,
-            status
-        })
+      createTaskAPI({
+        title: title.trim(),
+        description,
+        project,
+        assignee,
+        dueDate,
+        dateKey,
+        type,
+        priority,
+        category,
+        status
+      })
     } else {
-        const newTask = {
-          id: 't' + Date.now(),
-          title: title.trim(),
-          description,
-          project,
-          assignee,
-          dueDate,
-          dateKey,
-          type,
-          priority,
-          category,
-          status, 
-          done: status === 'done',
-          createdAt: new Date().toISOString(),
-        }
-        setTasks((prev) => [...prev, newTask])
+      const newTask = {
+        id: 't' + Date.now(),
+        title: title.trim(),
+        description,
+        project,
+        assignee,
+        dueDate,
+        dateKey,
+        type,
+        priority,
+        category,
+        status,
+        done: status === 'done',
+        createdAt: new Date().toISOString(),
+      }
+      setTasks((prev) => [...prev, newTask])
     }
   }
 
   const toggleTask = (id) => {
     const task = tasks.find(t => {
-        const taskId = t.id || t._id
-        return taskId === id
+      const taskId = t.id || t._id
+      return taskId === id
     })
     if (!task) return
-    
+
     const newDone = !task.done
     const newStatus = newDone ? 'done' : 'todo'
-    
+
     if (user) {
-        updateTaskAPI(id, { done: newDone, status: newStatus })
+      updateTaskAPI(id, { done: newDone, status: newStatus })
     } else {
-        setTasks((prev) =>
-          prev.map((t) => {
-              const taskId = t.id || t._id
-              if (taskId !== id) return t
-              return { ...t, done: newDone, status: newStatus }
-          }),
-        )
+      setTasks((prev) =>
+        prev.map((t) => {
+          const taskId = t.id || t._id
+          if (taskId !== id) return t
+          return { ...t, done: newDone, status: newStatus }
+        }),
+      )
     }
   }
 
   const updateTaskStatus = (id, newStatus) => {
-      if (user) {
-          updateTaskAPI(id, { status: newStatus, done: newStatus === 'done' })
-      } else {
-          setTasks(prev => prev.map(t => {
-              const taskId = t.id || t._id
-              if (taskId !== id) return t
-              return { 
-                  ...t, 
-                  status: newStatus, 
-                  done: newStatus === 'done' 
-              }
-          }))
-      }
+    if (user) {
+      updateTaskAPI(id, { status: newStatus, done: newStatus === 'done' })
+    } else {
+      setTasks(prev => prev.map(t => {
+        const taskId = t.id || t._id
+        if (taskId !== id) return t
+        return {
+          ...t,
+          status: newStatus,
+          done: newStatus === 'done'
+        }
+      }))
+    }
   }
 
   // --- DRAG & DROP ---
@@ -312,94 +318,94 @@ export function TaskProvider({ children }) {
     if (!title.trim()) return
     // Assuming backend support later, for now optimistic
     const task = tasks.find(t => {
-        const currentTaskId = t.id || t._id
-        return currentTaskId === taskId
+      const currentTaskId = t.id || t._id
+      return currentTaskId === taskId
     })
-    if(task && user) {
-        const newSub = { title: title.trim(), done: false } // No ID generated by subtask schema yet unless updated
-        const newSubtasks = [...(task.subtasks || []), newSub]
-        updateTaskAPI(taskId, { subtasks: newSubtasks })
+    if (task && user) {
+      const newSub = { title: title.trim(), done: false } // No ID generated by subtask schema yet unless updated
+      const newSubtasks = [...(task.subtasks || []), newSub]
+      updateTaskAPI(taskId, { subtasks: newSubtasks })
     } else {
-        setTasks(prev => prev.map(t => {
-          const currentTaskId = t.id || t._id
-          if (currentTaskId !== taskId) return t
-          const sub = {
-            id: 's' + Date.now(),
-            title: title.trim(),
-            done: false
-          }
-          return { ...t, subtasks: [...(t.subtasks || []), sub] }
-        }))
+      setTasks(prev => prev.map(t => {
+        const currentTaskId = t.id || t._id
+        if (currentTaskId !== taskId) return t
+        const sub = {
+          id: 's' + Date.now(),
+          title: title.trim(),
+          done: false
+        }
+        return { ...t, subtasks: [...(t.subtasks || []), sub] }
+      }))
     }
   }
 
   const toggleSubtask = (taskId, subTaskId) => {
-      const task = tasks.find(t => {
-          const currentTaskId = t.id || t._id
-          return currentTaskId === taskId
+    const task = tasks.find(t => {
+      const currentTaskId = t.id || t._id
+      return currentTaskId === taskId
+    })
+    if (task && user) {
+      // find index or match logic depends on if subTaskId is from Mongo ( _id) or local
+      // Backend subtasks have _id. 
+      const newSubtasks = (task.subtasks || []).map(s => {
+        // Robust check for ID
+        const currentSubId = s._id || s.id
+        if (currentSubId === subTaskId) return { ...s, done: !s.done }
+        return s
       })
-      if(task && user) {
-          // find index or match logic depends on if subTaskId is from Mongo ( _id) or local
-          // Backend subtasks have _id. 
-          const newSubtasks = (task.subtasks || []).map(s => {
-               // Robust check for ID
-               const currentSubId = s._id || s.id
-               if (currentSubId === subTaskId) return { ...s, done: !s.done }
-               return s
+      updateTaskAPI(taskId, { subtasks: newSubtasks })
+    } else {
+      setTasks(prev => prev.map(t => {
+        const currentTaskId = t.id || t._id
+        if (currentTaskId !== taskId) return t
+        return {
+          ...t,
+          subtasks: (t.subtasks || []).map(s => {
+            const currentSubId = s._id || s.id
+            return currentSubId === subTaskId ? { ...s, done: !s.done } : s
           })
-          updateTaskAPI(taskId, { subtasks: newSubtasks })
-      } else {
-        setTasks(prev => prev.map(t => {
-          const currentTaskId = t.id || t._id
-          if (currentTaskId !== taskId) return t
-          return {
-            ...t,
-            subtasks: (t.subtasks || []).map(s => {
-                const currentSubId = s._id || s.id
-                return currentSubId === subTaskId ? { ...s, done: !s.done } : s
-            })
-          }
-        }))
+        }
+      }))
     }
   }
 
   // --- ARCHIVE / RESTORE ---
   const archiveTask = (id) => {
-      if (user) {
-          updateTaskAPI(id, { isArchived: true })
-      } else {
-          setTasks(prev => prev.map(t => {
-              const taskId = t.id || t._id
-              return taskId === id ? { ...t, isArchived: true } : t
-          }))
-      }
+    if (user) {
+      updateTaskAPI(id, { isArchived: true })
+    } else {
+      setTasks(prev => prev.map(t => {
+        const taskId = t.id || t._id
+        return taskId === id ? { ...t, isArchived: true } : t
+      }))
+    }
   }
 
   const restoreTask = (id) => {
-      if (user) {
-          updateTaskAPI(id, { isArchived: false })
-      } else {
-          setTasks(prev => prev.map(t => {
-              const taskId = t.id || t._id
-              return taskId === id ? { ...t, isArchived: false } : t
-          }))
-      }
+    if (user) {
+      updateTaskAPI(id, { isArchived: false })
+    } else {
+      setTasks(prev => prev.map(t => {
+        const taskId = t.id || t._id
+        return taskId === id ? { ...t, isArchived: false } : t
+      }))
+    }
   }
 
   // deleteTask permanently removes it
   const deleteTask = (id) => {
-    if(user) {
-        deleteTaskAPI(id)
+    if (user) {
+      deleteTaskAPI(id)
     } else {
-        setTasks((prev) => prev.filter((t) => {
-            const taskId = t.id || t._id
-            return taskId !== id
-        }))
+      setTasks((prev) => prev.filter((t) => {
+        const taskId = t.id || t._id
+        return taskId !== id
+      }))
     }
   }
-  
+
   const deleteRecurring = (id) => {
-      setRecurring(prev => prev.filter(r => r.id !== id))
+    setRecurring(prev => prev.filter(r => r.id !== id))
   }
 
   const getTasksForDate = (dateKey) =>
