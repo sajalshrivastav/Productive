@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import '../../Styles/WigggleWidgets.css'
-import { useFocusSessions } from '../../Context/FocusSessionContext'
-import { useTasks } from '../../Context/TaskContext'
+import { useFocusSessions } from '../../hooks/useFocusSessions'
+import { useTasks } from '../../hooks/useTasks'
 
 export default function DailyStatsWidget() {
     const { getTodaySessions } = useFocusSessions()

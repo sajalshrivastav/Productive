@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import Project from '../models/Project.js';
+import { emitToUser } from '../socket.js';
 
 // @desc    Get all projects for authenticated user
 // @route   GET /api/projects
@@ -43,6 +44,7 @@ export const createProject = asyncHandler(async (req, res) => {
         deadline
     });
 
+    emitToUser(req.user._id.toString(), 'projects_updated', { action: 'create', project: project });
     res.status(201).json(project);
 });
 
@@ -60,6 +62,7 @@ export const updateProject = asyncHandler(async (req, res) => {
         project.deadline = req.body.deadline !== undefined ? req.body.deadline : project.deadline;
 
         const updatedProject = await project.save();
+        emitToUser(req.user._id.toString(), 'projects_updated', { action: 'update', project: updatedProject });
         res.json(updatedProject);
     } else {
         res.status(404);
@@ -75,6 +78,7 @@ export const deleteProject = asyncHandler(async (req, res) => {
 
     if (project && project.user.toString() === req.user._id.toString()) {
         await project.deleteOne();
+        emitToUser(req.user._id.toString(), 'projects_updated', { action: 'delete', projectId: req.params.id });
         res.json({ message: 'Project removed' });
     } else {
         res.status(404);

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { useChallenge } from '../../Context/ChallengeContext.jsx'
+import { useChallenge } from '../../hooks/useChallenge'
+
 import { Trophy, ArrowRight, Plus, X, List } from 'lucide-react'
 
 export default function ChallengeCreator() {

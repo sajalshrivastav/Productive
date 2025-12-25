@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import Event from '../models/Event.js';
+import { emitToUser } from '../socket.js';
 
 // @desc    Get all events for authenticated user
 // @route   GET /api/events
@@ -65,6 +66,7 @@ export const createEvent = asyncHandler(async (req, res) => {
         .populate('linkedTask', 'title')
         .populate('linkedProject', 'name color');
 
+    emitToUser(req.user._id.toString(), 'events_updated', { action: 'create', event: populatedEvent });
     res.status(201).json(populatedEvent);
 });
 
@@ -90,6 +92,7 @@ export const updateEvent = asyncHandler(async (req, res) => {
             .populate('linkedTask', 'title')
             .populate('linkedProject', 'name color');
 
+        emitToUser(req.user._id.toString(), 'events_updated', { action: 'update', event: populatedEvent });
         res.json(populatedEvent);
     } else {
         res.status(404);
@@ -105,6 +108,7 @@ export const deleteEvent = asyncHandler(async (req, res) => {
 
     if (event && event.user.toString() === req.user._id.toString()) {
         await event.deleteOne();
+        emitToUser(req.user._id.toString(), 'events_updated', { action: 'delete', eventId: req.params.id });
         res.json({ message: 'Event removed' });
     } else {
         res.status(404);

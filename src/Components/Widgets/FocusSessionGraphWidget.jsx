@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Zap, Coffee, BarChart3 } from 'lucide-react'
-import { useFocusSessions } from '../../Context/FocusSessionContext'
+import { useFocusSessions } from '../../hooks/useFocusSessions'
+
 
 export default function FocusSessionGraphWidget() {
     const { getSessionsByDate } = useFocusSessions()

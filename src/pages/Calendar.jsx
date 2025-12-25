@@ -1,7 +1,9 @@
 // src/pages/Calendar.jsx
 import { useMemo, useState, useEffect, useRef } from 'react'
-import { useTasks } from '../Context/TaskContext.jsx'
+import { useTasks } from '../hooks/useTasks'
+import { useEvents } from '../hooks/useEvents'
 import WaveWidget from '../Components/Widgets/WaveWidget.jsx'
+
 import EventModal from '../Components/calendar/EventModal.jsx'
 import ConfirmationModal from '../Components/UI/ConfirmationModal.jsx'
 import { ChevronLeft, ChevronRight, Plus, ChevronDown, Check } from 'lucide-react'
@@ -287,7 +289,9 @@ export default function CalendarPage() {
     return new Date(d.setDate(diff))
   }, [currentDate])
 
-  const [events, setEvents] = useState(() => loadEvents())
+  /* REMOVED LOCAL STORAGE LOGIC */
+
+  const { events, createEvent, updateEvent, deleteEvent } = useEvents();
   const [showModal, setShowModal] = useState(false)
   const [modalDate, setModalDate] = useState(getTodayKey())
   const [editingEvent, setEditingEvent] = useState(null)
@@ -296,16 +300,13 @@ export default function CalendarPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [itemToDelete, setItemToDelete] = useState(null)
 
-  useEffect(() => { setEvents(loadEvents()) }, [])
-  useEffect(() => { saveEvents(events) }, [events])
 
   const handleSaveEvent = (payload) => {
     if (!payload.title || !payload.dateKey) return
     if (editingEvent) {
-      setEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, ...payload } : e))
+      updateEvent({ id: editingEvent.id || editingEvent._id, updates: payload })
     } else {
-      const e = { id: 'ev' + Date.now().toString(36), ...payload, createdAt: new Date().toISOString() }
-      setEvents(prev => [...prev, e])
+      createEvent(payload)
       if (payload.type === 'Task') addTask({ title: payload.title, type: 'event', sourceId: 'ev-sync', dateKey: payload.dateKey, notes: payload.notes || '' })
     }
     setShowModal(false); setEditingEvent(null)
@@ -320,10 +321,11 @@ export default function CalendarPage() {
   // Called by ConfirmationModal
   const confirmDelete = () => {
     if (itemToDelete) {
-      setEvents((prev) => prev.filter((e) => e.id !== itemToDelete))
+      deleteEvent(itemToDelete)
       setItemToDelete(null)
     }
   }
+
 
   const openAddModal = (dateKey) => { setEditingEvent(null); setModalDate(dateKey); setShowModal(true) }
   const openEditModal = (event) => { setEditingEvent(event); setModalDate(event.dateKey); setShowModal(true) }

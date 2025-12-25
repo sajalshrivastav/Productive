@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import Task from '../models/Task.js';
+import { emitToUser } from '../socket.js';
 
 // @desc    Get all tasks for logged in user
 // @route   GET /api/tasks
@@ -30,6 +31,7 @@ const createTask = asyncHandler(async (req, res) => {
     });
 
     const createdTask = await task.save();
+    emitToUser(req.user._id.toString(), 'tasks_updated', { action: 'create', task: createdTask });
     res.status(201).json(createdTask);
 });
 
@@ -59,6 +61,7 @@ const updateTask = asyncHandler(async (req, res) => {
         }
 
         const updatedTask = await task.save();
+        emitToUser(req.user._id.toString(), 'tasks_updated', { action: 'update', task: updatedTask });
         res.json(updatedTask);
     } else {
         res.status(404);
@@ -79,6 +82,7 @@ const deleteTask = asyncHandler(async (req, res) => {
         }
 
         await task.deleteOne();
+        emitToUser(req.user._id.toString(), 'tasks_updated', { action: 'delete', taskId: req.params.id });
         res.json({ message: 'Task removed' });
     } else {
         res.status(404);

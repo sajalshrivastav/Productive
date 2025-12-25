@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import Card from '../Components/UI/Card.jsx'
 import SectionTitle from '../Components/UI/SectionTitle.jsx'
 import Button from '../Components/UI/Button.jsx'
-import { useTasks } from '../Context/TaskContext.jsx'
+import { useTasks } from '../hooks/useTasks'
+
 
 const STORAGE_KEY = 'cb-jobs-sheet-v1'
 const DEFAULT_STATUS = [
@@ -105,9 +106,8 @@ export default function JobTrackerSheet() {
     const selected = jobs.filter((j) => selectedIds.has(j.id))
     selected.forEach((job) => {
       addTask({
-        title: `Follow up — ${job.company || 'company'} (${
-          job.role || 'role'
-        })`,
+        title: `Follow up — ${job.company || 'company'} (${job.role || 'role'
+          })`,
         type: 'job',
         sourceId: job.id,
         dateKey: getTodayKey(),
@@ -370,9 +370,8 @@ export default function JobTrackerSheet() {
                         variant="primary"
                         onClick={() => {
                           addTask({
-                            title: `Follow up — ${row.company || 'company'} (${
-                              row.role || 'role'
-                            })`,
+                            title: `Follow up — ${row.company || 'company'} (${row.role || 'role'
+                              })`,
                             type: 'job',
                             sourceId: row.id,
                             dateKey: getTodayKey(),

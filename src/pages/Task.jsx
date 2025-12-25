@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
-import { useTasks } from '../Context/TaskContext.jsx'
-import { useProjects } from '../Context/ProjectContext.jsx'
+import { useTasks } from '../hooks/useTasks'
+
+import { useProjects } from '../hooks/useProjects'
+
 import Card from '../Components/UI/Card.jsx'
 import CustomSelect from '../Components/UI/CustomSelect.jsx'
 import TaskPlanner from '../Components/Tasks/TaskPlanner.jsx'
@@ -47,7 +49,7 @@ export default function Tasks() {
     // Edit State
     const [editingTaskId, setEditingTaskId] = useState(null)
     const [editTitle, setEditTitle] = useState('')
-    const { updateTask } = useTasks()
+
 
     const handleSaveEdit = (id) => {
         if (!editTitle.trim()) return

@@ -1,6 +1,7 @@
 import React from 'react'
 import { useTaskForm } from '../../hooks/useTaskForm'
-import { useProjects } from '../../Context/ProjectContext'
+import { useProjects } from '../../hooks/useProjects'
+
 
 export default function CreateTaskModal({ onClose }) {
     const { activeProject } = useProjects()

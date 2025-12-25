@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { useChallenge } from '../Context/ChallengeContext.jsx'
-import { useTasks } from '../Context/TaskContext.jsx'
-import { useHabits } from '../Context/HabitContext.jsx'
+import { useTasks } from '../hooks/useTasks'
+import { useHabits } from '../hooks/useHabits'
+import { useChallenge } from '../hooks/useChallenge'
 import { useGamification } from '../Context/GamificationContext.jsx'
+
+
 import { Trophy, Bell, CloudSun, Flame } from 'lucide-react'
 
 
@@ -42,7 +44,7 @@ export default function Dashboard() {
                 const y = d.getFullYear()
                 const m = String(d.getMonth() + 1).padStart(2, '0')
                 const day = String(d.getDate()).padStart(2, '0')
-                const key = `${y}-${m}-${day}`
+                const key = `${y} -${m} -${day} `
                 setPlannerEvents(data[key] || [])
             }
         } catch (e) { }
@@ -56,7 +58,7 @@ export default function Dashboard() {
         const y = d.getFullYear()
         const m = String(d.getMonth() + 1).padStart(2, '0')
         const day = String(d.getDate()).padStart(2, '0')
-        return `${y}-${m}-${day}`
+        return `${y} -${m} -${day} `
     })()
 
     // GLASSMORPHISM STYLE
@@ -139,7 +141,7 @@ export default function Dashboard() {
                                         <span>{Math.round((completedDays.length / activeChallenge.duration) * 100)}%</span>
                                     </div>
                                     <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                                        <div style={{ width: `${(completedDays.length / activeChallenge.duration) * 100}%`, height: '100%', background: '#4ade80', borderRadius: '4px' }} />
+                                        <div style={{ width: `${(completedDays.length / activeChallenge.duration) * 100}% `, height: '100%', background: '#4ade80', borderRadius: '4px' }} />
                                     </div>
                                 </div>
                             </div>

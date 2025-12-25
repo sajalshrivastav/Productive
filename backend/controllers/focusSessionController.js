@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import FocusSession from '../models/FocusSession.js';
+import { emitToUser } from '../socket.js';
 
 // @desc    Get all focus sessions for authenticated user
 // @route   GET /api/focus-sessions
@@ -28,6 +29,7 @@ export const createSession = asyncHandler(async (req, res) => {
         duration
     });
 
+    emitToUser(req.user._id.toString(), 'focus_sessions_updated', { action: 'create', session: session });
     res.status(201).json(session);
 });
 

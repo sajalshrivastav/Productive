@@ -1,6 +1,7 @@
 import React from 'react'
 import { Check, Flame, BookOpen, Moon, Dumbbell, Droplets, Sun, Briefcase } from 'lucide-react'
-import { useHabits } from '../../Context/HabitContext.jsx'
+import { useHabits } from '../../hooks/useHabits'
+
 
 const getIconForHabit = (habit) => {
     const title = habit.title?.toLowerCase() || habit.name?.toLowerCase() || ''
@@ -57,9 +58,9 @@ export default function HabitCarouselWidget() {
                 {habits.map(habit => {
                     const isCompleted = habit.history && habit.history[todayKey]
                     const streak = habit.streak || Object.keys(habit.history || {}).length || 0
-                    
+
                     return (
-                        <div 
+                        <div
                             key={habit.id || habit._id}
                             onClick={() => toggleDay(habit.id || habit._id, todayKey)}
                             style={{
@@ -90,7 +91,7 @@ export default function HabitCarouselWidget() {
 
                             {/* Bottom Section: Icon & Check Button */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '12px' }}>
-                                <div style={{ 
+                                <div style={{
                                     color: isCompleted ? '#4ade80' : 'var(--accent-primary)',
                                     opacity: isCompleted ? 1 : 0.8
                                 }}>

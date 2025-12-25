@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useProjects } from '../Context/ProjectContext'
+import { useProjects } from './useProjects'
 
 export function useProjectForm() {
-    const { createProject, setActiveProject } = useProjects()
+    const { addProject } = useProjects()
+
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [name, setName] = useState('')
     const [description, setDescription] = useState('')
@@ -19,10 +20,10 @@ export function useProjectForm() {
         setShowCreateModal(false)
     }
 
-    const handleSubmit = async () => {
+    const handleSubmit = () => {
         if (!name.trim()) return
 
-        const result = await createProject({
+        addProject({
             name,
             description,
             color,
@@ -32,11 +33,10 @@ export function useProjectForm() {
             createdAt: new Date().toISOString()
         })
 
-        if (result.success) {
-            resetForm()
-            setActiveProject(result.project)
-        }
+        resetForm()
+        // Note: setActiveProject support removed for now, user will see new project in list
     }
+
 
     return {
         showCreateModal,

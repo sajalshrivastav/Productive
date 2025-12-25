@@ -1,10 +1,11 @@
 import React from 'react'
 import '../../Styles/WigggleWidgets.css'
 import { Check, List } from 'lucide-react'
-import { useTasks } from '../../Context/TaskContext.jsx'
+import { useTasks } from '../../hooks/useTasks'
 
 export default function TasksWidget() {
     const { tasks, toggleTask } = useTasks()
+
 
     // Filter for today's tasks or priority tasks
     // For this UI, we just take the first 3 active or completed

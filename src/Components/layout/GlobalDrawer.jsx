@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { X, Play, Pause, RotateCcw, Settings, CheckSquare, Zap, Clock, Maximize2, Minimize2, Plus, Volume2, VolumeX } from 'lucide-react'
-import { useTasks } from '../../Context/TaskContext.jsx'
+import { useTasks } from '../../hooks/useTasks'
 import { useGamification } from '../../Context/GamificationContext.jsx'
-import { useFocusSessions } from '../../Context/FocusSessionContext.jsx'
-import { useHabits } from '../../Context/HabitContext.jsx'
+import { useFocusSessions } from '../../hooks/useFocusSessions'
+import { useHabits } from '../../hooks/useHabits'
 import "../../Styles/GlobalDrawer.css";
 
 export default function GlobalDrawer({ isOpen, onClose }) {

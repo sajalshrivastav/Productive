@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import '../../Styles/WigggleWidgets.css'
-import { useTasks } from '../../Context/TaskContext'
-import { useHabits } from '../../Context/HabitContext'
-import { useFocusSessions } from '../../Context/FocusSessionContext'
+import { useTasks } from '../../hooks/useTasks'
+import { useHabits } from '../../hooks/useHabits'
+import { useFocusSessions } from '../../hooks/useFocusSessions'
 
 export default function WaveWidget() {
     const { tasks } = useTasks()

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Plus, CheckCircle, Folder } from 'lucide-react'
-import { useProjects } from '../../Context/ProjectContext'
-import { useTasks } from '../../Context/TaskContext'
+import { useProjects } from '../../hooks/useProjects'
+import { useTasks } from '../../hooks/useTasks'
 import Button from '../UI/Button'
 
 export default function ProjectSidebar({ onNewProjectClick }) {

@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import generateToken from '../utils/generateToken.js';
 import User from '../models/User.js';
+import { emitToUser } from '../socket.js';
 
 // @desc    Auth user & get token
 // @route   POST /api/users/login
@@ -86,13 +87,15 @@ const updateUserStats = asyncHandler(async (req, res) => {
         user.level = req.body.level || user.level;
 
         const updatedUser = await user.save();
-        res.json({
+        const responseData = {
             _id: updatedUser._id,
             username: updatedUser.username,
             email: updatedUser.email,
             xp: updatedUser.xp,
             level: updatedUser.level
-        });
+        };
+        emitToUser(req.user._id.toString(), 'user_updated', responseData);
+        res.json(responseData);
     } else {
         res.status(404);
         throw new Error('User not found');

@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react'
 import '../../Styles/WigggleWidgets.css'
 import { BarChart3 } from 'lucide-react'
-import { useTasks } from '../../Context/TaskContext'
-import { useHabits } from '../../Context/HabitContext'
-import { useFocusSessions } from '../../Context/FocusSessionContext'
+import { useTasks } from '../../hooks/useTasks'
+import { useHabits } from '../../hooks/useHabits'
+import { useFocusSessions } from '../../hooks/useFocusSessions'
 
 export default function WeeklyProgressWidget() {
     const { tasks } = useTasks()

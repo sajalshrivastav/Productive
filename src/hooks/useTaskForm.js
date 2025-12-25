@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useTasks } from '../Context/TaskContext'
+import { useTasks } from './useTasks'
+
 
 export function useTaskForm(activeProject) {
     const { addTask } = useTasks()
@@ -19,10 +20,10 @@ export function useTaskForm(activeProject) {
         setShowTaskModal(false)
     }
 
-    const handleSubmit = async () => {
+    const handleSubmit = () => {
         if (!title.trim() || !activeProject) return
 
-        await addTask({
+        addTask({
             title,
             description,
             project: activeProject._id,
@@ -30,11 +31,12 @@ export function useTaskForm(activeProject) {
             priority,
             assignee,
             dueDate: dueDate || null,
-            createdAt: new Date().toISOString() // Assuming backend handles this but good to be explicit
+            createdAt: new Date().toISOString()
         })
 
         resetForm()
     }
+
 
     return {
         showTaskModal,

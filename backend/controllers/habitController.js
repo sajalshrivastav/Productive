@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import Habit from '../models/Habit.js';
+import { emitToUser } from '../socket.js';
 
 // @desc    Get user habits
 // @route   GET /api/habits
@@ -25,7 +26,9 @@ const createHabit = asyncHandler(async (req, res) => {
         streak: 0,
         total: 0
     });
-    res.status(201).json(habit);
+    const createdHabit = await habit.save();
+    emitToUser(req.user._id.toString(), 'habits_updated', { action: 'create', habit: createdHabit });
+    res.status(201).json(createdHabit);
 });
 
 // @desc    Update habit (toggle day)
@@ -53,6 +56,7 @@ const updateHabit = asyncHandler(async (req, res) => {
         if (req.body.total !== undefined) habit.total = req.body.total;
 
         const updatedHabit = await habit.save();
+        emitToUser(req.user._id.toString(), 'habits_updated', { action: 'update', habit: updatedHabit });
         res.json(updatedHabit);
     } else {
         res.status(404);
@@ -72,6 +76,7 @@ const deleteHabit = asyncHandler(async (req, res) => {
             throw new Error('Not authorized');
         }
         await habit.deleteOne();
+        emitToUser(req.user._id.toString(), 'habits_updated', { action: 'delete', habitId: req.params.id });
         res.json({ message: 'Habit removed' });
     } else {
         res.status(404);

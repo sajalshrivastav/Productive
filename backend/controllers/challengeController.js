@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import Challenge from '../models/Challenge.js';
+import { emitToUser } from '../socket.js';
 
 // @desc    Get user challenges
 // @route   GET /api/challenges
@@ -25,6 +26,7 @@ const createChallenge = asyncHandler(async (req, res) => {
         status: 'active'
     });
 
+    emitToUser(req.user._id.toString(), 'challenges_updated', { action: 'create', challenge: challenge });
     res.status(201).json(challenge);
 });
 
@@ -51,6 +53,7 @@ const updateChallenge = asyncHandler(async (req, res) => {
         if (req.body.status) challenge.status = req.body.status;
 
         const updatedChallenge = await challenge.save();
+        emitToUser(req.user._id.toString(), 'challenges_updated', { action: 'update', challenge: updatedChallenge });
         res.json(updatedChallenge);
     } else {
         res.status(404);
@@ -69,6 +72,8 @@ const deleteChallenge = asyncHandler(async (req, res) => {
             throw new Error('Not authorized');
         }
         await challenge.deleteOne();
+
+        emitToUser(req.user._id.toString(), 'challenges_updated', { action: 'delete', challengeId: req.params.id });
         res.json({ message: 'Challenge removed' });
     } else {
         res.status(404);

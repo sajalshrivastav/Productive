@@ -1,7 +1,7 @@
 import React from 'react'
 import { Target, CheckCircle, BarChart3, Calendar, Plus, Settings, Trash2 } from 'lucide-react'
-import { useProjects } from '../../Context/ProjectContext'
-import { useTasks } from '../../Context/TaskContext'
+import { useProjects } from '../../hooks/useProjects'
+import { useTasks } from '../../hooks/useTasks'
 import Button from '../UI/Button'
 
 export default function ProjectHeader({ onAddTask, onSettings, onDelete }) {
